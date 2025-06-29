@@ -1,0 +1,97 @@
+# ===========================================
+# 🚀 Vootcamp PH Scraper - Git Ignore File
+# ===========================================
+
+# 🔒 민감한 정보 (절대 커밋하지 않음)
+.env
+*.key
+*.pem
+config/secrets.json
+
+# 📊 로그 및 캐시 파일
+logs/
+*.log
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# 📦 가상환경
+venv/
+env/
+ENV/
+.venv/
+
+# 🧪 테스트 및 커버리지
+.coverage
+.pytest_cache/
+.tox/
+.coverage.*
+htmlcov/
+
+# 🗄️ 데이터베이스 및 데이터 파일
+*.db
+*.sqlite3
+data/raw/
+data/processed/
+*.csv
+*.json
+*.xlsx
+
+# 🌐 브라우저 관련
+*.html
+selenium-debug.log
+ghostdriver.log
+
+# 🔧 IDE 및 에디터
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 🖥️ 시스템 파일
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 📋 임시 파일
+*.tmp
+*.temp
+temp/
+tmp/
+
+# 🚗 ChromeDriver 및 브라우저 파일
+chromedriver*
+geckodriver*
+*.exe
+
+# 📝 문서 빌드
+docs/_build/
+site/
+
+# 🔄 백업 파일
+*.bak
+*.backup
+
+# 🧰 개발 도구
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# 📊 성능 분석
+.prof
+*.pstats
+
+# 🎯 특정 프로젝트 파일
+shopee_page_source.html
+shopee_comprehensive_results.json
+shopee_structure_analysis.json
+supabase_schema_for_copy.sql
+
+# 🧪 테스트 결과 파일
+test_*.json
+*_test_results.json
+
+# 🔒 기타 민감한 파일
+blocked_sessions.json

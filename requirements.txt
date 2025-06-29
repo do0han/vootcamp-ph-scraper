@@ -1,0 +1,37 @@
+# Core dependencies for Vootcamp PH Data Scraper
+pytrends==4.9.2
+selenium==4.15.2
+beautifulsoup4==4.12.2
+requests==2.31.0
+supabase==2.0.2
+python-dotenv==1.0.0
+
+# Web scraping helpers
+undetected-chromedriver==3.5.4
+webdriver-manager==4.0.1
+lxml==4.9.3
+
+# Data processing
+pandas==2.1.4
+numpy==1.24.4
+
+# Async support (asyncio is built-in for Python 3.9+)
+aiohttp==3.9.1
+
+# Network compatibility fix
+urllib3<2.0.0  # Fix for pytrends compatibility
+
+# Logging and monitoring
+structlog==23.2.0
+python-json-logger==2.0.7
+
+# Utility packages
+schedule==1.2.0
+retry==0.9.2
+fake-useragent==1.4.0
+
+# Development dependencies
+pytest==7.4.3
+pytest-asyncio==0.21.1
+black==23.11.0
+flake8==6.1.0 
