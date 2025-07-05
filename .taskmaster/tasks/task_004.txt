@@ -1,0 +1,48 @@
+# Task ID: 4
+# Title: Implement Data Cleaning and Formatting
+# Status: pending
+# Dependencies: 3
+# Priority: medium
+# Description: Create methods to clean and format extracted data for AI processing.
+# Details:
+1. Implement a method clean_and_format_data(user_profile, events, products)
+2. Convert data to AI-friendly format (JSON)
+3. Remove unnecessary fields
+4. Handle null values and data type conversions
+5. Implement data validation using Pydantic
+
+Example:
+```python
+from pydantic import BaseModel, Field
+
+class CleanUserProfile(BaseModel):
+    persona: str
+    mbti: str
+    interests: list[str]
+
+class CleanEvent(BaseModel):
+    title: str
+    opportunity_score: float
+
+class CleanProduct(BaseModel):
+    name: str
+    category: str
+    trend_score: float
+
+class CleanData(BaseModel):
+    user_profile: CleanUserProfile
+    top_events: list[CleanEvent] = Field(max_items=2)
+    trending_products: list[CleanProduct] = Field(max_items=2)
+
+def clean_and_format_data(self, user_profile, events, products):
+    clean_profile = CleanUserProfile(**user_profile)
+    clean_events = [CleanEvent(**event) for event in events[:2]]
+    clean_products = [CleanProduct(**product) for product in products[:2]]
+    return CleanData(user_profile=clean_profile, top_events=clean_events, trending_products=clean_products).dict()
+```
+
+# Test Strategy:
+1. Unit tests for data cleaning and formatting method
+2. Test with various input data scenarios
+3. Verify Pydantic models correctly validate and clean data
+4. Check handling of edge cases (e.g., missing fields, null values)

@@ -1,0 +1,16 @@
+# Task ID: 1
+# Title: Setup Project Repository and Environment
+# Status: pending
+# Dependencies: None
+# Priority: high
+# Description: Initialize the project repository, set up virtual environment, and install necessary dependencies.
+# Details:
+1. Create a new Git repository named 'vootcamp-ph-scraper'
+2. Initialize a Python virtual environment using venv
+3. Install required packages: pytrends, selenium, beautifulsoup4, requests, supabase-py
+4. Create a requirements.txt file
+5. Set up a .gitignore file to exclude virtual environment and sensitive information
+6. Create a basic project structure with folders for each data source (google_trends, shopee, tiktok) and a main.py file
+
+# Test Strategy:
+Verify that the repository is created, virtual environment is working, and all dependencies are installed correctly. Run a simple test script to ensure all imported libraries work without errors.

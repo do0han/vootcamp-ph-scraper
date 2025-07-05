@@ -1,0 +1,19 @@
+# Task ID: 6
+# Title: Implement Main Scraper Orchestrator
+# Status: pending
+# Dependencies: 2, 3, 4, 5
+# Priority: high
+# Description: Develop the main script to coordinate all scraping activities and manage the overall flow.
+# Details:
+1. Create 'main.py' file
+2. Implement the main scraping workflow:
+   a. Initialize all scrapers and Supabase connection
+   b. Set up logging
+   c. Implement error handling and retry logic
+   d. Coordinate the execution of each scraper module
+   e. Manage data flow from scrapers to Supabase
+3. Implement command-line arguments for flexible execution (e.g., specific platform scraping)
+4. Set up scheduling logic for periodic execution
+
+# Test Strategy:
+Develop integration tests to verify the entire scraping workflow. Test various scenarios including partial failures and recovery. Verify that all components work together seamlessly.

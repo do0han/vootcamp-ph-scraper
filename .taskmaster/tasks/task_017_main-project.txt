@@ -1,0 +1,17 @@
+# Task ID: 17
+# Title: Implement Incremental Scraping
+# Status: pending
+# Dependencies: 2, 3, 4, 5, 11
+# Priority: medium
+# Description: Develop a system to perform incremental scraping, focusing on new or updated data since the last scrape.
+# Details:
+1. Modify scraper modules to support incremental scraping:
+   a. Track last scrape timestamp for each data source
+   b. Implement logic to fetch only new or updated data
+2. Update Supabase schema to include last_updated fields
+3. Modify data insertion logic to update existing records when newer data is available
+4. Implement a mechanism to occasionally perform full scrapes to catch any missed updates
+5. Update main orchestrator to support both full and incremental scraping modes
+
+# Test Strategy:
+Develop unit tests for incremental scraping logic. Verify that only new or updated data is fetched. Test scenarios with various update patterns. Ensure that full scrapes can be triggered when needed.

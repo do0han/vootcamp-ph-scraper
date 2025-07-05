@@ -1,0 +1,19 @@
+# Task ID: 3
+# Title: Develop Shopee Data Scraper
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Create a module to scrape product data from Shopee Philippines using Selenium.
+# Details:
+1. Create a new file 'shopee_scraper.py'
+2. Set up Selenium WebDriver (use ChromeDriver version compatible with latest Chrome)
+3. Implement functions to scrape:
+   a. Top 20 products for specific search queries
+   b. 'FLASH DEALS' and 'Trending Products' from main/category pages
+4. Use explicit waits and proper error handling to manage dynamic content loading
+5. Implement anti-bot detection measures (e.g., random delays, user-agent rotation)
+6. Format scraped data into a structured format
+7. Implement data cleaning and transformation to match Supabase schema
+
+# Test Strategy:
+Develop unit tests for each scraping function. Test with various search queries and page layouts. Verify that the scraper can handle different Shopee page structures and error scenarios.

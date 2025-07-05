@@ -1,0 +1,44 @@
+# Task ID: 8
+# Title: Implement Report Storage in Supabase
+# Status: pending
+# Dependencies: 7
+# Priority: medium
+# Description: Create a method to store generated reports in the content_reports table.
+# Details:
+1. Implement a method to store reports in Supabase
+2. Include metadata such as generation timestamp and format
+3. Handle potential database errors
+
+Example:
+```python
+import uuid
+
+class AIReportGenerator:
+    # ... existing code ...
+    
+    def store_report(self, user_id, report_content):
+        try:
+            report_data = {
+                'id': str(uuid.uuid4()),
+                'user_id': user_id,
+                'report_title': f'Content Strategy Report - {datetime.now().strftime("%Y-%m-%d")}',
+                'report_body': report_content,
+                'report_format': 'markdown',
+                'generation_metadata': json.dumps({
+                    'generated_at': datetime.now().isoformat(),
+                    'model': 'gpt-4'
+                })
+            }
+            response = self.supabase.table('content_reports').insert(report_data).execute()
+            return response.data[0]['id']
+        except Exception as e:
+            self.logger.error(f'Failed to store report: {str(e)}')
+            raise
+```
+
+# Test Strategy:
+1. Unit test for store_report method
+2. Test with mock Supabase responses
+3. Verify error handling
+4. Integration test with actual Supabase instance
+5. Verify data integrity in the database

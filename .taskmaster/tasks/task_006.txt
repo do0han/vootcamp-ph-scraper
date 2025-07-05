@@ -1,0 +1,44 @@
+# Task ID: 6
+# Title: Implement OpenAI GPT-4 API Integration
+# Status: pending
+# Dependencies: 5
+# Priority: high
+# Description: Integrate OpenAI's GPT-4 API for generating content strategy reports.
+# Details:
+1. Install openai package (already in requirements)
+2. Implement a method to call OpenAI API
+3. Add error handling and retry logic
+4. Implement token usage monitoring
+
+Example:
+```python
+import openai
+from tenacity import retry, stop_after_attempt, wait_random_exponential
+
+class AIReportGenerator:
+    def __init__(self):
+        # ... existing init code ...
+        openai.api_key = os.getenv('OPENAI_API_KEY')
+    
+    @retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(3))
+    def generate_content_strategy(self, prompt):
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[{"role": "system", "content": "You are an AI assistant that generates content strategy reports."}, 
+                          {"role": "user", "content": prompt}],
+                max_tokens=1000
+            )
+            self.logger.info(f'Token usage: {response["usage"]}')
+            return response.choices[0].message['content']
+        except Exception as e:
+            self.logger.error(f'OpenAI API call failed: {str(e)}')
+            raise
+```
+
+# Test Strategy:
+1. Unit tests for OpenAI API integration
+2. Mock API responses for testing
+3. Verify retry logic works as expected
+4. Test token usage monitoring
+5. Integration test with actual API (be cautious with API usage)

@@ -1,0 +1,19 @@
+# Task ID: 14
+# Title: Implement Basic Analytics Module
+# Status: pending
+# Dependencies: 5, 11
+# Priority: low
+# Description: Develop a module to perform basic analytics on the collected data.
+# Details:
+1. Create a new file 'analytics.py'
+2. Use pandas and numpy libraries for data analysis
+3. Implement functions to:
+   a. Calculate daily/weekly trend changes in Google Trends data
+   b. Identify top-performing products and categories in Shopee data
+   c. Analyze hashtag popularity and growth rates in TikTok data
+4. Generate basic statistical summaries (mean, median, standard deviation) for relevant metrics
+5. Implement data visualization using matplotlib or seaborn libraries
+6. Store analytics results in a separate Supabase table
+
+# Test Strategy:
+Develop unit tests for each analytics function. Verify calculations with known datasets. Test visualization outputs. Ensure that analytics results are correctly stored in Supabase.

@@ -1,0 +1,40 @@
+# Task ID: 5
+# Title: Implement Master Prompt Template System
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Create a system to manage and load prompt templates from external configuration.
+# Details:
+1. Create a JSON file (config/prompt_templates.json) to store prompt templates
+2. Implement a PromptManager class to load and manage templates
+3. Add methods to get templates and inject dynamic data
+
+Example:
+```python
+import json
+from string import Template
+
+class PromptManager:
+    def __init__(self, template_file='config/prompt_templates.json'):
+        with open(template_file, 'r') as f:
+            self.templates = json.load(f)
+    
+    def get_template(self, template_name):
+        return self.templates.get(template_name)
+    
+    def format_prompt(self, template_name, **kwargs):
+        template = self.get_template(template_name)
+        if not template:
+            raise ValueError(f'Template {template_name} not found')
+        return Template(template).safe_substitute(**kwargs)
+
+# Usage in AIReportGenerator
+self.prompt_manager = PromptManager()
+prompt = self.prompt_manager.format_prompt('content_strategy', user_profile=user_profile, events=events, products=products)
+```
+
+# Test Strategy:
+1. Unit tests for PromptManager class
+2. Test loading templates from file
+3. Test template formatting with various inputs
+4. Verify error handling for missing templates

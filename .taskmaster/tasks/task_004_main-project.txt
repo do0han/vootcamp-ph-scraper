@@ -1,0 +1,19 @@
+# Task ID: 4
+# Title: Implement TikTok Data Collection
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Develop a module to collect video metadata from TikTok using Selenium.
+# Details:
+1. Create a new file 'tiktok_scraper.py'
+2. Set up Selenium WebDriver with necessary configurations to mimic human behavior
+3. Implement functions to scrape:
+   a. Top 20 videos' metadata for specific hashtags
+   b. Popular sounds information
+4. Use advanced Selenium techniques (e.g., JavaScript execution) to handle TikTok's dynamic content
+5. Implement robust error handling and retry mechanisms
+6. Format collected data into a structured format
+7. Transform data to match Supabase schema
+
+# Test Strategy:
+Create comprehensive unit tests for each function. Test with various hashtags and edge cases. Verify the scraper's resilience against TikTok's anti-scraping measures.

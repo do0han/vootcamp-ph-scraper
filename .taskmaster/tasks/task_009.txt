@@ -1,0 +1,34 @@
+# Task ID: 9
+# Title: Implement Markdown and HTML Formatting
+# Status: pending
+# Dependencies: 7
+# Priority: low
+# Description: Add methods to format the generated report in Markdown and HTML.
+# Details:
+1. Implement methods for Markdown and HTML conversion
+2. Use markdown and html libraries
+3. Ensure proper escaping and sanitization
+
+Example:
+```python
+import markdown
+from bs4 import BeautifulSoup
+
+class AIReportGenerator:
+    # ... existing code ...
+    
+    def format_markdown(self, content):
+        # Assuming content is already in markdown format
+        return content
+    
+    def format_html(self, content):
+        html = markdown.markdown(content)
+        soup = BeautifulSoup(html, 'html.parser')
+        return soup.prettify()
+```
+
+# Test Strategy:
+1. Unit tests for markdown and HTML formatting methods
+2. Test with various input content structures
+3. Verify proper escaping and sanitization
+4. Check output validity using HTML validators

@@ -1,0 +1,17 @@
+# Task ID: 13
+# Title: Implement Data Versioning
+# Status: pending
+# Dependencies: 5, 11
+# Priority: low
+# Description: Develop a system to version and track changes in scraped data over time.
+# Details:
+1. Modify Supabase schema to include versioning fields (e.g., version_number, valid_from, valid_to)
+2. Update 'supabase_manager.py' to handle data versioning:
+   a. Implement logic to create new versions of data
+   b. Develop functions to retrieve specific versions of data
+   c. Implement archiving mechanism for old versions
+3. Modify data insertion logic to check for changes before creating new versions
+4. Implement a cleanup routine to manage old versions based on configurable retention policy
+
+# Test Strategy:
+Create unit tests for versioning logic. Verify that new versions are created correctly when data changes. Test retrieval of specific versions and archiving functionality.

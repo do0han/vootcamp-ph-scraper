@@ -1,0 +1,40 @@
+# Task ID: 2
+# Title: Implement Supabase Client Connection
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Create a Supabase client connection in the AIReportGenerator class.
+# Details:
+1. In ai/report_generator.py, create AIReportGenerator class
+2. Implement __init__ method with Supabase client initialization
+3. Use python-dotenv to load environment variables
+4. Implement a method to test the connection
+5. Add error handling and logging
+
+Example code:
+```python
+from supabase import create_client
+from dotenv import load_dotenv
+import os
+import logging
+
+class AIReportGenerator:
+    def __init__(self):
+        load_dotenv()
+        self.supabase = create_client(os.getenv('SUPABASE_URL'), os.getenv('SUPABASE_KEY'))
+        self.logger = logging.getLogger(__name__)
+
+    def test_connection(self):
+        try:
+            response = self.supabase.table('users').select('id').limit(1).execute()
+            return True
+        except Exception as e:
+            self.logger.error(f'Supabase connection failed: {str(e)}')
+            return False
+```
+
+# Test Strategy:
+1. Unit test for successful Supabase client initialization
+2. Test connection method with mock Supabase responses
+3. Verify error logging for failed connections
+4. Integration test with actual Supabase instance

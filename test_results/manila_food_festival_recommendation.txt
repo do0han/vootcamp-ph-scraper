@@ -1,0 +1,34 @@
+Manila Food Festival 콘텐츠 추천 (Zaila Mae 스타일)
+Generated: 2025-07-02 16:22:54
+
+Based on the following event and trend analysis data:
+
+**EVENT DETAILS:**
+- Event Name: Manila Food Festival
+- Event Type: food_festival
+- Location: BGC, Taguig
+- Date: August 15-17, 2024
+- Description: Premium food and wine tasting event featuring local and international cuisines, cooking demonstrations, and culinary competitions
+
+**TREND ANALYSIS:**
+- Trend Score: 85/100
+- Trend Status: Rising 📈
+- Opportunity Score: 92/100
+- Related Search Queries: manila food festival 2024, bgc food events, philippine food festival, food festival manila, bgc restaurants
+
+**TARGET PERSONA:**
+- Creator Type: Food and lifestyle content creator like Zaila Mae
+- Content Style: Food reviews, Daily life vlogs, Product hauls, Lifestyle tips
+- Primary Audience: Filipino millennials, food enthusiasts, lifestyle followers
+- Platform Focus: Short-form videos, Story content, Live streams
+
+Generate a comprehensive content strategy recommendation in Korean that includes:
+
+1. **콘텐츠 아이디어 (Content Ideas)**: 3-5 specific video concepts
+2. **제품 연계 방안 (Product Integration)**: Relevant products to feature
+3. **최적 타이밍 (Optimal Timing)**: When to create and post content
+4. **해시태그 전략 (Hashtag Strategy)**: Trending hashtags and keywords
+5. **협업 기회 (Collaboration Opportunities)**: Networking and partnership ideas
+6. **예상 효과 (Expected Impact)**: Potential reach and engagement metrics
+
+Provide actionable, specific recommendations that align with current Filipino lifestyle trends and the creator's content style.

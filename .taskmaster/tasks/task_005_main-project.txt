@@ -1,0 +1,19 @@
+# Task ID: 5
+# Title: Set Up Supabase Integration
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Implement functions to store and manage scraped data in Supabase.
+# Details:
+1. Create a new file 'supabase_manager.py'
+2. Use supabase-py library (version 1.0.3 or later) to set up connection to Supabase
+3. Implement functions to:
+   a. Create necessary tables (google_trends, shopee_products, tiktok_videos)
+   b. Insert new data into respective tables
+   c. Update existing data if necessary
+   d. Retrieve data for verification
+4. Implement error handling and connection management
+5. Use environment variables for Supabase credentials
+
+# Test Strategy:
+Develop unit tests for each database operation. Test with mock data and verify data integrity. Ensure proper error handling for database connection issues and constraint violations.

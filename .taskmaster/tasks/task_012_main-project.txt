@@ -1,0 +1,19 @@
+# Task ID: 12
+# Title: Implement Scraping Job Scheduler
+# Status: pending
+# Dependencies: 6
+# Priority: medium
+# Description: Develop a scheduling system to automate periodic scraping tasks.
+# Details:
+1. Research and select a task scheduling library (e.g., APScheduler 3.10.1)
+2. Create a new file 'scheduler.py'
+3. Implement functions to:
+   a. Schedule daily runs for Google Trends and Shopee scraping
+   b. Schedule weekly runs for TikTok scraping
+   c. Allow for manual override and immediate execution
+4. Integrate scheduler with the main scraper orchestrator
+5. Implement proper error handling and logging for scheduled jobs
+6. Ensure the scheduler can handle timezone differences (use Philippines time)
+
+# Test Strategy:
+Develop unit tests for scheduling logic. Verify that jobs are scheduled correctly and execute at the specified times. Test error handling and manual override functionality.

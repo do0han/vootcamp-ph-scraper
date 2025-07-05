@@ -1,0 +1,18 @@
+# Task ID: 2
+# Title: Implement Google Trends Data Collection
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Develop a module to collect data from Google Trends using the pytrends library.
+# Details:
+1. Create a new file 'google_trends_scraper.py'
+2. Use pytrends library (version 4.9.0 or later) to connect to Google Trends
+3. Implement functions to collect:
+   a. 'Trending Now' topics for the Philippines in the last 24 hours
+   b. 'Related queries' (Rising) for specific categories
+4. Handle rate limiting and errors
+5. Format the collected data into a structured format (e.g., list of dictionaries)
+6. Implement data transformation to match the required schema for Supabase storage
+
+# Test Strategy:
+Create unit tests for each function. Test with mock data and real API calls. Verify that the collected data matches the expected format and contains all required fields.
