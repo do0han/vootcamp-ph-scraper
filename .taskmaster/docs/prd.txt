@@ -1,0 +1,87 @@
+# Vootcamp PH Data Scraper - Product Requirements Document
+
+## Project Overview
+Comprehensive data collection bot for Philippines market trends analysis, designed to automatically scrape and aggregate data from multiple online platforms for persona-based targeting and AI-powered insights.
+
+## Core Features Required
+
+### 1. Multi-Platform Data Collection
+- Google Trends scraper for Philippines trending searches
+- Shopee Philippines product and sales data collection  
+- TikTok hashtag and viral content analysis
+- TikTok Shop product scraping for social commerce trends
+
+### 2. Persona-Based Targeting System
+- Young Filipina (18-35) beauty and fashion targeting
+- Productivity Seeker (students) tool recommendations
+- Urban Professional targeting for lifestyle products
+- AI-powered persona matching and recommendations
+
+### 3. Database & Storage
+- Supabase integration for centralized data storage
+- Real-time data synchronization and querying
+- Performance optimized table structures
+- Data retention and cleanup policies
+
+### 4. Automation & Scheduling
+- Automated data collection scheduling per persona
+- Intelligent rate limiting and bot detection avoidance
+- Error handling and retry mechanisms
+- Performance monitoring and alerting
+
+### 5. AI-Powered Analysis
+- OpenAI integration for trend analysis and reporting
+- Persona-specific insight generation
+- Market trend prediction and recommendations
+- Automated report generation
+
+### 6. API & Dashboard
+- FastAPI backend for data access
+- Real-time analytics dashboard
+- Persona-specific data endpoints
+- Performance metrics and monitoring
+
+## Technical Requirements
+
+### Performance Targets
+- Daily data collection: 183+ data points minimum
+- Response time: <2 seconds for API calls
+- 95%+ uptime for automated collection
+- Anti-bot detection success rate: >90%
+
+### Data Sources Integration
+- Google Trends API (pytrends)
+- Shopee Philippines web scraping
+- TikTok hashtag video scraping
+- TikTok Shop product discovery
+
+### Infrastructure
+- Python 3.9+ with async/await support
+- Supabase PostgreSQL database
+- Chrome/Chromium for web automation
+- Proxy rotation for IP management
+
+## Success Criteria
+- All 3 core scrapers (Google Trends, Shopee, TikTok) fully operational
+- Persona targeting system with 3+ personas implemented
+- Real-time data collection and storage working
+- Basic AI report generation functional
+- Production-ready MVP within 1-2 months
+
+## Current Implementation Status
+- ✅ Google Trends: Fully operational
+- ✅ Supabase: Database schema and connectivity complete
+- ✅ Persona System: 3 personas implemented with targeting logic
+- ✅ TikTok Scraper: Advanced implementation (5,100+ lines)
+- 🔧 TikTok Shop: Framework ready, needs bot detection improvements
+- 🔧 Shopee: Core functionality ready, needs schema updates
+- 🔧 Main Orchestration: Basic structure, needs automation
+- 🔧 AI Reports: Framework ready, needs OpenAI integration
+- 🔧 Dashboard API: Basic FastAPI structure ready
+
+## Priority Focus Areas
+1. TikTok Shop bot detection resolution
+2. Shopee table schema updates
+3. Main automation orchestration
+4. AI report generation
+5. Dashboard API completion 

@@ -29,7 +29,14 @@ from .error_handler import ErrorHandler, ErrorContext, ErrorSeverity
 from .performance_monitor import PerformanceMonitor, BlockingEvent
 from .ethical_scraping import EthicalScrapingManager, ScrapingPolicy
 from .fingerprint_randomizer import FingerprintRandomizer
+try:
 from ..config.settings import settings
+except ImportError:
+    # Fallback for when running as script
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+    from config.settings import settings
 from .behavior_simulator import BehaviorSimulator
 
 @dataclass

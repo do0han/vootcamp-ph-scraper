@@ -1,10 +1,16 @@
 import logging
 import requests
+import sys
+from pathlib import Path
 from typing import Dict, List, Optional, Any
 from urllib.parse import urljoin
 
-from ..utils.anti_bot import AntiBotSystem, AntiBotConfig
-from ..config.settings import settings
+# Add project root to path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
+from utils.anti_bot_system import AntiBotSystem
+from config.settings import Settings
 
 class ShopeeScraper:
     """Shopee data scraper with anti-bot measures"""
@@ -13,9 +19,10 @@ class ShopeeScraper:
     SEARCH_API = "/api/v4/search/search_items"
     PRODUCT_API = "/api/v4/item/get"
     
-    def __init__(self, anti_bot_config: Optional[AntiBotConfig] = None):
+    def __init__(self, anti_bot_system=None, scraping_policy=None):
         """Initialize the scraper with anti-bot configuration"""
-        self.anti_bot = AntiBotSystem(anti_bot_config or AntiBotConfig())
+        self.anti_bot_system = anti_bot_system
+        self.scraping_policy = scraping_policy
         self.logger = logging.getLogger(__name__)
         self.session = requests.Session()
     

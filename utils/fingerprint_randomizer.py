@@ -7,7 +7,7 @@ import json
 import logging
 from typing import Dict, Any
 
-from vootcamp_ph_scraper.config.settings import settings
+from config.settings import Settings
 
 logger = logging.getLogger(__name__)
 

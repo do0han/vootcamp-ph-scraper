@@ -11,10 +11,16 @@ from datetime import datetime, timedelta
 from retry import retry
 from pytrends.request import TrendReq
 
-from ..config.settings import settings
-from .base_scraper import BaseScraper
-from ..utils.anti_bot_system import AntiBotSystem
-from ..utils.ethical_scraping import ScrapingPolicy
+import sys
+from pathlib import Path
+
+# Add project root to path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
+from config.settings import Settings
+from utils.anti_bot_system import AntiBotSystem
+from utils.ethical_scraping import ScrapingPolicy
 
 logger = logging.getLogger(__name__)
 

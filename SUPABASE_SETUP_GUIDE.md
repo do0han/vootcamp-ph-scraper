@@ -1,247 +1,160 @@
-# 🚀 Supabase 설정 가이드
+# 🗄️ Supabase 설정 가이드
 
-Vootcamp PH Data Scraper를 위한 Supabase 데이터베이스 설정 가이드입니다.
+이 가이드는 Vootcamp PH 스크래퍼에 Supabase 데이터베이스를 설정하는 방법을 안내합니다.
 
-## 1단계: Supabase 프로젝트 생성
+## 📋 빠른 설정 체크리스트
 
-### 1. Supabase 계정 생성 및 프로젝트 생성
-1. **[Supabase](https://supabase.com)** 웹사이트 접속
-2. **"Start your project"** 클릭
-3. GitHub 계정으로 로그인
-4. **"New project"** 클릭
-5. Organization 선택 (개인 계정 사용 권장)
-6. 프로젝트 정보 입력:
-   - **Name**: `vootcamp-ph-scraper`
-   - **Database Password**: 강력한 패스워드 생성 (저장 필수!)
-   - **Region**: `Southeast Asia (Singapore)` (필리핀과 가장 가까운 리전)
-7. **"Create new project"** 클릭
+- [ ] Supabase 계정 생성
+- [ ] 새 프로젝트 생성
+- [ ] 데이터베이스 스키마 적용
+- [ ] 환경 변수 설정
+- [ ] 연결 테스트 성공
 
-### 2. 프로젝트 생성 대기
-- 프로젝트 생성에 1-2분 소요
-- 완료되면 프로젝트 대시보드로 이동됩니다
+## 🚀 단계별 설정
 
-## 2단계: 데이터베이스 스키마 생성
+### 1. Supabase 계정 및 프로젝트 생성
 
-### 1. SQL Editor 접속
-1. 왼쪽 메뉴에서 **"SQL Editor"** 클릭
-2. **"New query"** 클릭
+1. [supabase.com](https://supabase.com)에서 무료 계정 생성
+2. "New Project" 클릭
+3. 프로젝트 이름: `vootcamp-ph-scraper`
+4. 데이터베이스 비밀번호 설정 (안전한 곳에 저장!)
+5. Region: `Southeast Asia (Singapore)` 권장 (필리핀과 가까움)
+6. 프로젝트 생성 완료까지 대기 (약 2분)
 
-### 2. 스키마 SQL 실행
-아래 SQL을 복사해서 SQL Editor에 붙여넣고 실행하세요:
+### 2. API 키 확인
 
-```sql
--- Google Trends Table
-CREATE TABLE IF NOT EXISTS google_trends (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    collection_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    trend_type VARCHAR(50) NOT NULL,
-    keyword VARCHAR(255) NOT NULL,
-    search_volume INTEGER,
-    related_topics JSONB,
-    region VARCHAR(10) DEFAULT 'PH',
-    category VARCHAR(100),
-    timeframe VARCHAR(50),
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
+프로젝트 생성 후:
+1. 프로젝트 대시보드에서 **Settings** > **API** 이동
+2. 다음 정보 복사:
+   - **Project URL**: `https://your-project-ref.supabase.co`
+   - **anon public key**: `eyJhbGc...` (공개키)
+   - **service_role key**: `eyJhbGc...` (비밀키)
 
--- Shopee Products Table
-CREATE TABLE IF NOT EXISTS shopee_products (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    collection_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    search_keyword VARCHAR(255) NOT NULL,
-    product_name TEXT NOT NULL,
-    seller_name VARCHAR(255),
-    price DECIMAL(10,2),
-    currency VARCHAR(10) DEFAULT 'PHP',
-    rating DECIMAL(2,1),
-    review_count INTEGER,
-    sales_count INTEGER,
-    product_url TEXT,
-    image_url TEXT,
-    category VARCHAR(100),
-    location VARCHAR(100),
-    shipping_info JSONB,
-    discount_info JSONB,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
+### 3. 데이터베이스 스키마 적용
 
--- TikTok Videos Table
-CREATE TABLE IF NOT EXISTS tiktok_videos (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    collection_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    hashtag VARCHAR(255) NOT NULL,
-    video_url TEXT,
-    video_id VARCHAR(255),
-    uploader_name VARCHAR(255),
-    uploader_username VARCHAR(255),
-    view_count BIGINT,
-    like_count INTEGER,
-    comment_count INTEGER,
-    share_count INTEGER,
-    video_title TEXT,
-    video_description TEXT,
-    used_hashtags JSONB,
-    sound_info JSONB,
-    duration_seconds INTEGER,
-    upload_date TIMESTAMPTZ,
-    is_trending BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
+1. Supabase 대시보드에서 **SQL Editor** 이동
+2. **New query** 클릭
+3. `database/schema.sql` 파일의 내용을 복사하여 붙여넣기
+4. **Run** 버튼 클릭
+5. 성공 메시지 확인
 
--- Performance Indexes
-CREATE INDEX IF NOT EXISTS idx_google_trends_collection_date ON google_trends(collection_date);
-CREATE INDEX IF NOT EXISTS idx_google_trends_keyword ON google_trends(keyword);
-CREATE INDEX IF NOT EXISTS idx_shopee_products_collection_date ON shopee_products(collection_date);
-CREATE INDEX IF NOT EXISTS idx_shopee_products_search_keyword ON shopee_products(search_keyword);
-CREATE INDEX IF NOT EXISTS idx_tiktok_videos_collection_date ON tiktok_videos(collection_date);
-CREATE INDEX IF NOT EXISTS idx_tiktok_videos_hashtag ON tiktok_videos(hashtag);
-
--- Trending Summary View
-CREATE OR REPLACE VIEW trending_summary AS
-SELECT 
-    'google_trends' as source,
-    COUNT(*) as total_records,
-    COUNT(DISTINCT keyword) as unique_keywords,
-    MAX(collection_date) as last_updated
-FROM google_trends
-WHERE collection_date >= NOW() - INTERVAL '24 hours'
-
-UNION ALL
-
-SELECT 
-    'shopee_products' as source,
-    COUNT(*) as total_records,
-    COUNT(DISTINCT search_keyword) as unique_keywords,
-    MAX(collection_date) as last_updated
-FROM shopee_products
-WHERE collection_date >= NOW() - INTERVAL '24 hours'
-
-UNION ALL
-
-SELECT 
-    'tiktok_videos' as source,
-    COUNT(*) as total_records,
-    COUNT(DISTINCT hashtag) as unique_keywords,
-    MAX(collection_date) as last_updated
-FROM tiktok_videos
-WHERE collection_date >= NOW() - INTERVAL '24 hours';
-```
-
-3. **"RUN"** 버튼 클릭하여 실행
-4. 성공 메시지 확인 후 **"Table Editor"**에서 테이블들이 생성되었는지 확인
-
-## 3단계: API 키 확보
-
-### 1. Project API 키 복사
-1. 왼쪽 메뉴에서 **"Settings"** → **"API"** 클릭
-2. **Project URL** 복사 (예: `https://abcdefgh.supabase.co`)
-3. **anon public** 키 복사 (eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... 형식)
-
-## 4단계: 환경 변수 설정
-
-### 1. .env 파일 생성
-vootcamp_ph_scraper 폴더에서:
+### 4. 환경 변수 설정
 
 ```bash
+# 1. 환경 변수 파일 생성
 cp env.example .env
+
+# 2. .env 파일 편집
+# 최소한 다음 두 항목은 반드시 설정:
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_KEY=your-anon-public-key-here
 ```
 
-### 2. .env 파일 편집
+### 5. 연결 테스트
+
 ```bash
-# Supabase Configuration
-SUPABASE_URL=https://여기에-당신의-프로젝트-url.supabase.co
-SUPABASE_KEY=여기에-당신의-anon-public-키
-
-# Scraping Configuration (이미 설정된 값들)
-USER_AGENT=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
-HEADLESS_MODE=true
-MAX_RETRIES=3
-DELAY_BETWEEN_REQUESTS=2
-LOG_LEVEL=INFO
-SHOPEE_BASE_URL=https://shopee.ph
-GOOGLE_TRENDS_REGION=PH
+# 데이터베이스 연결 테스트
+python test_database.py
 ```
 
-## 5단계: 연결 테스트
-
-### 1. 데이터베이스 연결 테스트
-```bash
-python3 -c "
-from database.supabase_client import SupabaseClient
-try:
-    client = SupabaseClient()
-    print('✅ Supabase 연결 성공!')
-except Exception as e:
-    print(f'❌ 연결 실패: {e}')
-"
+성공하면 다음과 같은 메시지가 출력됩니다:
+```
+✅ Supabase connection successful!
+✅ Google Trends: Inserted 1 records
+✅ Shopee Products: Inserted 1 records  
+✅ TikTok Videos: Inserted 1 records
+🎉 All database tests passed successfully!
 ```
 
-### 2. 테이블 확인 테스트
-```bash
-python3 -c "
-from database.supabase_client import SupabaseClient
-client = SupabaseClient()
+## 🏗️ 생성된 테이블 구조
 
-# 각 테이블 확인
-tables = ['google_trends', 'shopee_products', 'tiktok_videos']
-for table in tables:
-    try:
-        result = client.client.table(table).select('*').limit(1).execute()
-        print(f'✅ {table} 테이블 정상')
-    except Exception as e:
-        print(f'❌ {table} 테이블 오류: {e}')
-"
-```
+| 테이블명 | 설명 | 주요 필드 |
+|---------|------|-----------|
+| `google_trends` | Google 트렌드 데이터 | keyword, search_volume, region |
+| `shopee_products` | Shopee 상품 정보 | product_name, price, rating, sales_count |
+| `tiktok_videos` | TikTok 영상 데이터 | video_url, view_count, hashtag |
 
-## 6단계: 보안 설정 (선택사항)
+## 🔧 고급 설정 (선택사항)
 
 ### Row Level Security (RLS) 활성화
-더 강화된 보안을 원한다면:
+
+보안을 위해 RLS를 활성화하려면:
 
 ```sql
--- RLS 활성화
+-- 각 테이블에 RLS 활성화
 ALTER TABLE google_trends ENABLE ROW LEVEL SECURITY;
 ALTER TABLE shopee_products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tiktok_videos ENABLE ROW LEVEL SECURITY;
 
--- 모든 사용자에게 읽기 권한 부여 (필요에 따라 조정)
-CREATE POLICY "Allow read access" ON google_trends FOR SELECT USING (true);
-CREATE POLICY "Allow read access" ON shopee_products FOR SELECT USING (true);
-CREATE POLICY "Allow read access" ON tiktok_videos FOR SELECT USING (true);
+-- 모든 사용자에게 읽기 권한 부여 (개발 단계)
+CREATE POLICY "Enable read access for all users" ON google_trends
+    FOR SELECT USING (true);
+    
+CREATE POLICY "Enable read access for all users" ON shopee_products
+    FOR SELECT USING (true);
 
--- 삽입 권한 부여 (스크래퍼용)
-CREATE POLICY "Allow insert access" ON google_trends FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow insert access" ON shopee_products FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow insert access" ON tiktok_videos FOR INSERT WITH CHECK (true);
+CREATE POLICY "Enable read access for all users" ON tiktok_videos
+    FOR SELECT USING (true);
 ```
 
-## 7단계: 대시보드에서 데이터 확인
+### 자동 데이터 정리 설정
 
-### Supabase 대시보드에서 실시간 모니터링
-1. **"Table Editor"** → 각 테이블에서 데이터 확인
-2. **"SQL Editor"**에서 trending_summary 뷰 조회:
+30일 이상 된 데이터 자동 삭제:
+
    ```sql
-   SELECT * FROM trending_summary;
+-- 매일 자정에 실행되는 크론 작업 생성
+SELECT cron.schedule('cleanup-old-data', '0 0 * * *', 'SELECT clean_old_data(30);');
    ```
 
-## 🎉 설정 완료!
+## 🚨 문제 해결
 
-이제 Vootcamp PH Data Scraper가 Supabase에 연결되어 필리핀 시장 데이터를 자동으로 수집하고 저장할 준비가 완료되었습니다!
+### 연결 오류
 
-### 다음 단계
-```bash
-# 전체 시스템 테스트 실행
-python3 main.py
+**문제**: `ValueError: Supabase URL and key must be set`
+**해결**: `.env` 파일에 올바른 URL과 키가 설정되었는지 확인
+
+**문제**: `Invalid API key`
+**해결**: Supabase 대시보드에서 API 키를 다시 복사해서 확인
+
+**문제**: `Connection timeout`
+**해결**: 인터넷 연결 확인, 프로젝트가 활성 상태인지 확인
+
+### 스키마 오류
+
+**문제**: `relation "table_name" does not exist`
+**해결**: SQL Editor에서 `database/schema.sql` 스크립트를 다시 실행
+
+### 권한 오류
+
+**문제**: `insufficient_privilege`
+**해결**: `service_role` 키를 사용하거나 RLS 정책 확인
+
+## 📊 모니터링 및 관리
+
+### 데이터 확인
+
+```sql
+-- 각 테이블의 데이터 수 확인
+SELECT * FROM trending_summary;
+
+-- 최근 24시간 데이터 확인
+SELECT COUNT(*) FROM google_trends WHERE collection_date >= NOW() - INTERVAL '24 hours';
+SELECT COUNT(*) FROM shopee_products WHERE collection_date >= NOW() - INTERVAL '24 hours';
+SELECT COUNT(*) FROM tiktok_videos WHERE collection_date >= NOW() - INTERVAL '24 hours';
 ```
 
-## 📞 문제 해결
+### 성능 최적화
 
-### 일반적인 오류들:
+- 인덱스는 자동으로 생성됨
+- 대량 데이터 처리시 배치 삽입 사용
+- 정기적인 `VACUUM ANALYZE` 실행 권장
 
-1. **"Authentication failed"**: API 키가 올바른지 확인
-2. **"relation does not exist"**: SQL 스키마가 제대로 실행되었는지 확인
-3. **"permission denied"**: RLS 정책 확인 (위의 6단계 참조)
+## 🔗 추가 자료
 
-### 도움이 필요하시면:
-- Supabase 공식 문서: https://supabase.com/docs
-- 프로젝트 이슈: GitHub Issues에 문의
+- [Supabase 공식 문서](https://supabase.com/docs)
+- [PostgreSQL 문서](https://www.postgresql.org/docs/)
+- [프로젝트 GitHub](https://github.com/your-repo/vootcamp-ph-scraper)
+
+---
+
+✅ **설정 완료 후 다음 단계**: Google Trends 스크래퍼 구현 ([Task 16](../README.md#tasks))

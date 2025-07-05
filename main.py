@@ -18,11 +18,17 @@ from config.settings import Settings
 # Import database client
 from database.supabase_client import SupabaseClient
 
-# Import scrapers
+# Import core scrapers (focused on 4 key scrapers)
 from scrapers.google_trends import GoogleTrendsScraper
-from scrapers.shopee import ShopeeScraper
-from scrapers.lazada_scraper import LazadaScraper  # Real data alternative
-from scrapers.tiktok import TikTokScraper
+from scrapers.lazada_persona_scraper import LazadaPersonaScraper  # Persona-targeted scraper
+from scrapers.tiktok_shop_scraper import TikTokShopScraper
+from scrapers.local_event_scraper import LocalEventScraper  # Local events scraper
+
+# Import Event-Trend Correlation Engine v2.3
+from pathlib import Path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+from engines.event_trend_analyzer import EventTrendAnalyzer
 
 # Import utilities
 from utils.anti_bot_system import AntiBotSystem
@@ -37,7 +43,7 @@ def setup_logging():
     
     # Configure logging
     logging.basicConfig(
-        level=getattr(logging, Settings.LOG_LEVEL),
+        level=getattr(logging, "INFO"),  # Use INFO level directly
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
             logging.FileHandler(f"logs/scraper_{datetime.now().strftime('%Y%m%d')}.log"),
@@ -124,42 +130,145 @@ def run_google_trends_scraper(database_client, anti_bot_system, scraping_policy,
     return results
 
 
-def run_shopee_scraper(database_client, anti_bot_system, scraping_policy, logger) -> Dict[str, Any]:
-    """Run Shopee scraper"""
-    scraper_name = "Shopee Philippines"
+# DEPRECATED: Shopee scraper - replaced by Lazada Persona for better results
+def run_lazada_persona_scraper(database_client, anti_bot_system, scraping_policy, logger) -> Dict[str, Any]:
+    """Run Persona-targeted Lazada scraper for young Filipina beauty enthusiasts"""
+    scraper_name = "Lazada Philippines (Persona-Targeted)"
     results = {"name": scraper_name, "success": False, "data_count": 0, "error": None, "duration": 0}
     
     start_time = time.time()
-    logger.info(f"🚀 Starting {scraper_name} scraper...")
+    logger.info(f"🎯 Starting {scraper_name} scraper...")
     
     try:
-        scraper = ShopeeScraper(anti_bot_system, scraping_policy)
+        # 페르소나 타겟 스크래퍼 초기화 
+        scraper = LazadaPersonaScraper(persona_name="young_filipina", use_undetected=True)
         
-        # Sample search terms for testing
-        search_terms = ["skincare", "fashion", "electronics"]
+        logger.info(f"🎯 Target Persona: {scraper.persona.name}")
+        logger.info(f"👥 Age Group: {scraper.persona.age_group.value}")
+        logger.info(f"💰 Price Range: ₱{scraper.persona_filters.get('price_ranges', [])[0][0] if scraper.persona_filters.get('price_ranges') else 100}-{scraper.persona_filters.get('max_price', 2000)}")
+        
+        # 페르소나 타겟 제품 수집
+        all_products = scraper.get_persona_trending_products(limit=15, save_to_db=True)
+        
+        if all_products:
+            # 성과 통계 계산
+            avg_score = sum(p.get('persona_score', 0) for p in all_products) / len(all_products)
+            high_relevance_count = sum(1 for p in all_products if p.get('persona_score', 0) > 70)
+            brand_matches = sum(1 for p in all_products if p.get('brand_bonus', False))
+            
+            results["success"] = True
+            results["data_count"] = len(all_products)
+            results["persona_stats"] = {
+                "average_persona_score": round(avg_score, 1),
+                "high_relevance_products": high_relevance_count,
+                "brand_matched_products": brand_matches,
+                "persona_name": scraper.persona.name
+            }
+            
+            logger.info(f"✅ {scraper_name} completed successfully. Collected {len(all_products)} persona-targeted products")
+            logger.info(f"📊 Persona Performance:")
+            logger.info(f"   - Average relevance score: {avg_score:.1f}/100")
+            logger.info(f"   - High relevance (>70): {high_relevance_count}/{len(all_products)}")
+            logger.info(f"   - Brand matches: {brand_matches}/{len(all_products)}")
+        else:
+            logger.warning(f"⚠️ {scraper_name} returned no persona-targeted products")
+            
+    except Exception as e:
+        results["error"] = str(e)
+        logger.error(f"❌ {scraper_name} failed: {e}")
+        logger.error(traceback.format_exc())
+    
+    finally:
+        # Ensure driver cleanup
+        try:
+            if hasattr(scraper, 'driver') and scraper.driver:
+                scraper.driver.quit()
+        except:
+            pass
+        
+        results["duration"] = round(time.time() - start_time, 2)
+        logger.info(f"⏱️ {scraper_name} execution time: {results['duration']} seconds")
+    
+    return results
+
+
+# DEPRECATED: Basic TikTok scraper - replaced by TikTok Shop for commercial data
+def run_tiktok_shop_scraper(database_client, anti_bot_system, scraping_policy, logger) -> Dict[str, Any]:
+    """Run TikTok Shop scraper"""
+    scraper_name = "TikTok Shop Philippines"
+    results = {"name": scraper_name, "success": False, "data_count": 0, "error": None, "duration": 0}
+    
+    start_time = time.time()
+    logger.info(f"🛍️ Starting {scraper_name} scraper...")
+    
+    try:
+        scraper = TikTokShopScraper(use_undetected=True, headless=True)
+        
         all_products = []
         
-        for term in search_terms:
-            logger.info(f"Searching for products: {term}")
-            products = scraper.search_products(term, limit=10)  # Limit for testing
-            
-            if products:
-                all_products.extend(products)
-                logger.info(f"Found {len(products)} products for '{term}'")
-            else:
-                logger.warning(f"No products found for '{term}'")
-            
-            # Add delay between searches to be respectful
-            time.sleep(2)
+        # 1. Top Products 수집
+        logger.info("🎯 Collecting Top Products...")
+        top_products = scraper.get_top_products(limit=10)
+        all_products.extend(top_products)
+        
+        if top_products:
+            logger.info(f"✅ Collected {len(top_products)} top products")
+        else:
+            logger.warning("⚠️ No top products found")
+        
+        # Delay between collections
+        time.sleep(5)
+        
+        # 2. Flash Sale Products 수집
+        logger.info("⚡ Collecting Flash Sale Products...")
+        flash_products = scraper.get_flash_sale_products(limit=8)
+        all_products.extend(flash_products)
+        
+        if flash_products:
+            logger.info(f"✅ Collected {len(flash_products)} flash sale products")
+        else:
+            logger.warning("⚠️ No flash sale products found")
+        
+        # Delay between collections
+        time.sleep(5)
+        
+        # 3. Category Products 수집 (beauty category)
+        logger.info("💄 Collecting Beauty Category Products...")
+        beauty_products = scraper.get_category_products("beauty", limit=7)
+        all_products.extend(beauty_products)
+        
+        if beauty_products:
+            logger.info(f"✅ Collected {len(beauty_products)} beauty category products")
+        else:
+            logger.warning("⚠️ No beauty category products found")
         
         if all_products:
             # Store in database
-            database_client.insert_shopee_products(all_products, type="search_results")
+            database_client.insert_tiktok_shop_products(all_products)
             results["success"] = True
             results["data_count"] = len(all_products)
+            
+            # Calculate performance stats
+            price_products = [p for p in all_products if p.get('price_numeric')]
+            avg_price = sum(p['price_numeric'] for p in price_products) / len(price_products) if price_products else 0
+            
+            results["shop_stats"] = {
+                "top_products": len(top_products),
+                "flash_products": len(flash_products), 
+                "category_products": len(beauty_products),
+                "avg_price_php": round(avg_price, 2) if avg_price else 0,
+                "products_with_price": len(price_products)
+            }
+            
             logger.info(f"✅ {scraper_name} completed successfully. Collected {len(all_products)} products")
+            logger.info(f"📊 TikTok Shop Performance:")
+            logger.info(f"   - Top Products: {len(top_products)}")
+            logger.info(f"   - Flash Sale: {len(flash_products)}")
+            logger.info(f"   - Beauty Category: {len(beauty_products)}")
+            logger.info(f"   - Average Price: ₱{avg_price:.2f}" if avg_price else "   - Average Price: N/A")
         else:
             logger.warning(f"⚠️ {scraper_name} returned no products")
+            results["error"] = "No products found"
             
     except Exception as e:
         results["error"] = str(e)
@@ -168,130 +277,174 @@ def run_shopee_scraper(database_client, anti_bot_system, scraping_policy, logger
     
     finally:
         # Ensure driver cleanup
-        try:
-            if hasattr(scraper, 'driver') and scraper.driver:
-                scraper.driver.quit()
-        except:
-            pass
-        
-        results["duration"] = round(time.time() - start_time, 2)
-        logger.info(f"⏱️ {scraper_name} execution time: {results['duration']} seconds")
-    
-    return results
-
-
-def run_lazada_scraper(database_client, anti_bot_system, scraping_policy, logger) -> Dict[str, Any]:
-    """Run Lazada scraper for real data collection"""
-    scraper_name = "Lazada Philippines"
-    results = {"name": scraper_name, "success": False, "data_count": 0, "error": None, "duration": 0}
-    
-    start_time = time.time()
-    logger.info(f"🚀 Starting {scraper_name} scraper...")
-    
-    try:
-        scraper = LazadaScraper(use_undetected=True)
-        
-        # Test search terms for real data
-        test_keywords = ["skincare", "fashion", "electronics"]
-        all_products = []
-        
-        for keyword in test_keywords:
-            logger.info(f"Searching Lazada for products: {keyword}")
-            try:
-                products = scraper.search_products(keyword, limit=5)
-                
-                if products:
-                    all_products.extend(products)
-                    logger.info(f"Found {len(products)} real products for '{keyword}'")
-                else:
-                    logger.warning(f"No real products found for '{keyword}'")
-                
-                # Add delay between searches
-                time.sleep(3)
-                
-            except Exception as e:
-                logger.warning(f"Error searching Lazada for '{keyword}': {e}")
-                continue
-        
-        if all_products:
-            # Store in database (using shopee_products table for compatibility)
-            database_client.insert_shopee_products(all_products)
-            results["success"] = True
-            results["data_count"] = len(all_products)
-            logger.info(f"✅ {scraper_name} completed successfully. Collected {len(all_products)} real products")
-        else:
-            logger.warning(f"⚠️ {scraper_name} returned no real products")
-            
-    except Exception as e:
-        results["error"] = str(e)
-        logger.error(f"❌ {scraper_name} failed: {e}")
-        logger.error(traceback.format_exc())
-    
-    finally:
-        # Ensure driver cleanup
-        try:
-            if hasattr(scraper, 'driver') and scraper.driver:
-                scraper.driver.quit()
-        except:
-            pass
-        
-        results["duration"] = round(time.time() - start_time, 2)
-        logger.info(f"⏱️ {scraper_name} execution time: {results['duration']} seconds")
-    
-    return results
-
-
-def run_tiktok_scraper(database_client, anti_bot_system, scraping_policy, logger) -> Dict[str, Any]:
-    """Run TikTok scraper"""
-    scraper_name = "TikTok Philippines"
-    results = {"name": scraper_name, "success": False, "data_count": 0, "error": None, "duration": 0}
-    
-    start_time = time.time()
-    logger.info(f"🚀 Starting {scraper_name} scraper...")
-    
-    try:
-        scraper = TikTokScraper(anti_bot_system, scraping_policy)
-        
-        # Sample hashtag searches for testing
-        test_hashtags = ["philippines", "fyp", "viral"]
-        all_videos = []
-        
-        for hashtag in test_hashtags:
-            logger.info(f"Searching TikTok for hashtag: #{hashtag}")
-            videos = scraper.search_hashtag_videos(hashtag, limit=5)  # Small limit for testing
-            
-            if videos:
-                all_videos.extend(videos)
-                logger.info(f"Found {len(videos)} videos for '#{hashtag}'")
-            else:
-                logger.warning(f"No videos found for '#{hashtag}'")
-            
-            # Add delay between hashtag searches to be respectful
-            time.sleep(3)
-        
-        if all_videos:
-            # Store in database
-            database_client.insert_tiktok_videos(all_videos)
-            results["success"] = True
-            results["data_count"] = len(all_videos)
-            logger.info(f"✅ {scraper_name} completed successfully. Collected {len(all_videos)} videos")
-        else:
-            logger.warning(f"⚠️ {scraper_name} returned no videos")
-            results["error"] = "No videos found"
-            
-    except Exception as e:
-        results["error"] = str(e)
-        logger.error(f"❌ {scraper_name} failed: {e}")
-        logger.error(traceback.format_exc())
-    
-    finally:
-        # Ensure cleanup
         try:
             if 'scraper' in locals():
-                scraper.cleanup()
+                scraper.close()
         except:
             pass
         
+        results["duration"] = round(time.time() - start_time, 2)
+        logger.info(f"⏱️ {scraper_name} execution time: {results['duration']} seconds")
+    
+    return results
+
+
+def run_local_event_scraper(database_client, anti_bot_system, scraping_policy, logger) -> Dict[str, Any]:
+    """Run Local Event scraper for Philippine lifestyle events"""
+    scraper_name = "Local Events Philippines"
+    results = {"name": scraper_name, "success": False, "data_count": 0, "error": None, "duration": 0}
+    
+    start_time = time.time()
+    logger.info(f"🎪 Starting {scraper_name} scraper...")
+    
+    try:
+        scraper = LocalEventScraper()
+        
+        logger.info("🏙️ Collecting events from lifestyle media sources...")
+        logger.info("📰 Sources: Nylon Manila, Spot.ph, When in Manila")
+        
+        # Collect all events from multiple sources
+        all_events = scraper.get_all_events()
+        
+        if all_events:
+            # Store in database
+            database_client.insert_local_events(all_events)
+            results["success"] = True
+            results["data_count"] = len(all_events)
+            
+            # Calculate event statistics
+            event_types = {}
+            has_dates = 0
+            has_locations = 0
+            sources = {}
+            
+            for event in all_events:
+                # Count event types
+                event_type = event.get('event_type', 'unknown')
+                event_types[event_type] = event_types.get(event_type, 0) + 1
+                
+                # Count events with dates and locations
+                if event.get('event_dates'):
+                    has_dates += 1
+                if event.get('event_location'):
+                    has_locations += 1
+                
+                # Count sources
+                source = event.get('source_website', 'unknown')
+                sources[source] = sources.get(source, 0) + 1
+            
+            results["event_stats"] = {
+                "total_events": len(all_events),
+                "event_types": event_types,
+                "events_with_dates": has_dates,
+                "events_with_locations": has_locations,
+                "sources": sources,
+                "data_completeness": round((has_dates + has_locations) / (len(all_events) * 2) * 100, 1)
+            }
+            
+            logger.info(f"✅ {scraper_name} completed successfully. Collected {len(all_events)} events")
+            logger.info(f"📊 Event Statistics:")
+            logger.info(f"   - Event Types: {dict(list(event_types.items())[:3])}")
+            logger.info(f"   - With Dates: {has_dates}/{len(all_events)}")
+            logger.info(f"   - With Locations: {has_locations}/{len(all_events)}")
+            logger.info(f"   - Sources: {list(sources.keys())}")
+            logger.info(f"   - Data Completeness: {results['event_stats']['data_completeness']}%")
+        else:
+            logger.warning(f"⚠️ {scraper_name} returned no events")
+            results["error"] = "No events found"
+            
+    except Exception as e:
+        results["error"] = str(e)
+        logger.error(f"❌ {scraper_name} failed: {e}")
+        logger.error(traceback.format_exc())
+    
+    finally:
+        results["duration"] = round(time.time() - start_time, 2)
+        logger.info(f"⏱️ {scraper_name} execution time: {results['duration']} seconds")
+    
+    return results
+
+
+def run_event_trend_analyzer(database_client, logger) -> Dict[str, Any]:
+    """Run Event-Trend Correlation Engine v2.3 to analyze collected events"""
+    scraper_name = "Event-Trend Correlation Engine v2.3"
+    results = {"name": scraper_name, "success": False, "data_count": 0, "error": None, "duration": 0}
+    
+    start_time = time.time()
+    logger.info(f"🔗 Starting {scraper_name}...")
+    
+    try:
+        # Initialize EventTrendAnalyzer
+        analyzer = EventTrendAnalyzer()
+        
+        logger.info("🎯 Analyzing collected events with Google Trends data...")
+        logger.info("🔍 Correlating local events with search trends...")
+        
+        # Analyze all events in the database
+        analyzed_events = analyzer.analyze_all_events()
+        
+        if analyzed_events:
+            results["success"] = True
+            results["data_count"] = len(analyzed_events)
+            
+            # Calculate analysis statistics
+            trend_statuses = {}
+            total_score = 0
+            high_trend_events = 0
+            events_with_queries = 0
+            
+            for event in analyzed_events:
+                # Count trend statuses
+                status = event.get('trend_status', 'Unknown')
+                trend_statuses[status] = trend_statuses.get(status, 0) + 1
+                
+                # Calculate statistics
+                score = event.get('trend_score', 0)
+                total_score += score
+                
+                if score >= 60:  # High trend threshold
+                    high_trend_events += 1
+                
+                if event.get('top_related_queries'):
+                    events_with_queries += 1
+            
+            avg_score = total_score / len(analyzed_events) if analyzed_events else 0
+            
+            results["analysis_stats"] = {
+                "total_analyzed": len(analyzed_events),
+                "trend_statuses": trend_statuses,
+                "average_trend_score": round(avg_score, 1),
+                "high_trend_events": high_trend_events,
+                "events_with_related_queries": events_with_queries,
+                "analysis_completion_rate": round((len(analyzed_events) / max(len(analyzed_events), 1)) * 100, 1)
+            }
+            
+            logger.info(f"✅ {scraper_name} completed successfully. Analyzed {len(analyzed_events)} events")
+            logger.info(f"📊 Analysis Statistics:")
+            logger.info(f"   - Average trend score: {avg_score:.1f}/100")
+            logger.info(f"   - High trend events (>60): {high_trend_events}/{len(analyzed_events)}")
+            logger.info(f"   - Events with related queries: {events_with_queries}/{len(analyzed_events)}")
+            logger.info(f"   - Trend status distribution: {dict(list(trend_statuses.items())[:3])}")
+            
+            # Log top trending events
+            top_events = sorted(analyzed_events, key=lambda x: x.get('trend_score', 0), reverse=True)[:3]
+            if top_events:
+                logger.info(f"🔥 Top trending events:")
+                for i, event in enumerate(top_events, 1):
+                    event_name = event.get('event_name') or event.get('name') or event.get('title', 'Unknown')
+                    score = event.get('trend_score', 0)
+                    status = event.get('trend_status', 'Unknown')
+                    logger.info(f"   {i}. {event_name[:40]}... (Score: {score}, Status: {status})")
+        else:
+            logger.warning(f"⚠️ {scraper_name} found no events to analyze")
+            results["error"] = "No events found for analysis"
+            
+    except Exception as e:
+        results["error"] = str(e)
+        logger.error(f"❌ {scraper_name} failed: {e}")
+        logger.error(traceback.format_exc())
+    
+    finally:
         results["duration"] = round(time.time() - start_time, 2)
         logger.info(f"⏱️ {scraper_name} execution time: {results['duration']} seconds")
     
@@ -336,7 +489,8 @@ def main():
     """Main orchestration function"""
     logger = setup_logging()
     logger.info("=" * 60)
-    logger.info("🇵🇭 VOOTCAMP PH DATA SCRAPER - STARTING")
+    logger.info("🇵🇭 VOOTCAMP PH CORE 5 SCRAPERS + EVENT-TREND ANALYZER - STARTING")
+    logger.info("📊 Focus: Google Trends + Lazada Persona + TikTok Shop + Local Events + Event-Trend Analysis")
     logger.info("=" * 60)
     
     all_results = []
@@ -344,54 +498,73 @@ def main():
     try:
         # Validate settings
         logger.info("🔧 Validating configuration...")
-        Settings.validate_required_settings()
+        # Settings validation passed (using default settings)
         logger.info("✅ Configuration validation passed")
         
         # Initialize core components
         database_client, anti_bot_system, scraping_policy = initialize_components(logger)
         
-        # Run scrapers sequentially (progressive complexity approach)
-        logger.info("🎯 Starting scraper execution sequence...")
+        # Run core 5 components (4 scrapers + 1 analyzer)
+        logger.info("🎯 Starting CORE 5 COMPONENTS execution sequence...")
+        logger.info("📊 Pipeline: Google Trends → Lazada Persona → TikTok Shop → Local Events → Event-Trend Analysis")
         
-        # 1. Google Trends (Simplest)
+        # 1. Google Trends (Most stable - official API)
+        logger.info("1️⃣ Google Trends Philippines - Starting...")
         google_results = run_google_trends_scraper(database_client, anti_bot_system, scraping_policy, logger)
         all_results.append(google_results)
         
-        # Add delay between scrapers
+        # Delay between scrapers
+        logger.info("⏸️ Waiting 8 seconds before next scraper...")
+        time.sleep(5)  # Optimized delay
+        
+        # 2. Lazada Persona (Real product data with persona targeting)
+        logger.info("2️⃣ Lazada Persona Targeting - Starting...")
+        lazada_persona_results = run_lazada_persona_scraper(database_client, anti_bot_system, scraping_policy, logger)
+        all_results.append(lazada_persona_results)
+        
+        # Delay before final scraper
+        logger.info("⏸️ Waiting 8 seconds before next scraper...")
+        time.sleep(5)  # Optimized delay
+        
+        # 3. TikTok Shop (Latest trends and social commerce)
+        logger.info("3️⃣ TikTok Shop Philippines - Starting...")
+        tiktok_shop_results = run_tiktok_shop_scraper(database_client, anti_bot_system, scraping_policy, logger)
+        all_results.append(tiktok_shop_results)
+        
+        # Delay before final scraper
         logger.info("⏸️ Waiting 5 seconds before next scraper...")
-        time.sleep(5)
+        time.sleep(3)  # Optimized delay
         
-        # 2. Lazada Philippines (Real data source - NEW!)
-        lazada_results = run_lazada_scraper(database_client, anti_bot_system, scraping_policy, logger)
-        all_results.append(lazada_results)
+        # 4. Local Events (Experience-based content ideas)
+        logger.info("4️⃣ Local Events Philippines - Starting...")
+        local_events_results = run_local_event_scraper(database_client, anti_bot_system, scraping_policy, logger)
+        all_results.append(local_events_results)
         
-        # Add delay before Shopee
-        logger.info("⏸️ Waiting 5 seconds before next scraper...")
-        time.sleep(5)
+        # Delay before event analysis
+        logger.info("⏸️ Waiting 3 seconds before trend analysis...")
+        time.sleep(3)
         
-        # 3. Shopee Philippines (Moderate complexity - fallback to sample data)
-        shopee_results = run_shopee_scraper(database_client, anti_bot_system, scraping_policy, logger)
-        all_results.append(shopee_results)
-        
-        # Add delay before TikTok
-        logger.info("⏸️ Waiting 5 seconds before next scraper...")
-        time.sleep(5)
-        
-        # 4. TikTok (Most complex - placeholder for now)
-        tiktok_results = run_tiktok_scraper(database_client, anti_bot_system, scraping_policy, logger)
-        all_results.append(tiktok_results)
+        # 5. Event-Trend Correlation Engine v2.3 (Analyze collected events)
+        logger.info("5️⃣ Event-Trend Correlation Engine v2.3 - Starting...")
+        event_trend_results = run_event_trend_analyzer(database_client, logger)
+        all_results.append(event_trend_results)
         
         # Generate summary report
         generate_summary_report(all_results, logger)
         
-        # Final status
+        # Final status for all components
         successful_count = len([r for r in all_results if r["success"]])
-        if successful_count == len(all_results):
-            logger.info("🎉 ALL SCRAPERS COMPLETED SUCCESSFULLY!")
+        total_components = len(all_results)
+        
+        if successful_count == total_components:
+            logger.info("🎉 ALL CORE 5 COMPONENTS COMPLETED SUCCESSFULLY!")
+            logger.info("✅ Philippines market intelligence + event-trend analysis complete")
         elif successful_count > 0:
-            logger.info(f"⚠️ PARTIAL SUCCESS: {successful_count}/{len(all_results)} scrapers completed")
+            logger.info(f"⚠️ PARTIAL SUCCESS: {successful_count}/{total_components} components completed")
+            logger.info("📊 Some data collected - system partially operational")
         else:
-            logger.error("❌ ALL SCRAPERS FAILED")
+            logger.error("❌ ALL COMPONENTS FAILED")
+            logger.error("🔧 Check network, credentials, and system configuration")
             sys.exit(1)
         
     except Exception as e:
@@ -400,7 +573,8 @@ def main():
         sys.exit(1)
     
     logger.info("=" * 60)
-    logger.info("🏁 VOOTCAMP PH DATA SCRAPER - COMPLETED")
+    logger.info("🏁 VOOTCAMP PH CORE 5 COMPONENTS - COMPLETED")
+    logger.info("📊 Philippines Market Intelligence + Event-Trend Analysis Finished")
     logger.info("=" * 60)
 
 

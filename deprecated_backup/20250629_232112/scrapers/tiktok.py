@@ -16,10 +16,16 @@ from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 from webdriver_manager.chrome import ChromeDriverManager
 
-from vootcamp_ph_scraper.utils.anti_bot_system import AntiBotSystem
-from vootcamp_ph_scraper.utils.ethical_scraping import ScrapingPolicy
-from vootcamp_ph_scraper.config.settings import settings
-from .base_scraper import BaseScraper
+import sys
+from pathlib import Path
+
+# Add project root to path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
+from utils.anti_bot_system import AntiBotSystem
+from utils.ethical_scraping import ScrapingPolicy
+from config.settings import Settings
 
 # Import DataAccess
 try:

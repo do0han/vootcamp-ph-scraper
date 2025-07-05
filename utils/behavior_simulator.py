@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import List, Optional, Tuple
 import numpy as np
 
-from ..config.settings import settings
+from config.settings import Settings
 
 class HumanBehaviorSimulator:
     """Simulates human-like behavior patterns for web scraping"""
