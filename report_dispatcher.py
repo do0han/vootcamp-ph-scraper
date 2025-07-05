@@ -5,6 +5,13 @@ Central dispatcher function that routes report generation requests to
 specific report generators based on report_type.
 """
 
+import openai
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 def generate_specialized_report(user_profile, report_type):
     """
     Main dispatcher function for generating specialized reports.
@@ -37,164 +44,68 @@ def generate_specialized_report(user_profile, report_type):
         return f"Error: Unknown report type '{report_type}'. Available types: content_strategy, monetization, performance_optimization, content_ideas, trend_analysis, competitor_analysis"
 
 
+def get_user_profile(persona_id):
+    # This function is a placeholder.
+    # In a real application, you would fetch this from a database
+    # or a user management service.
+    # For this UAT, we will receive the full profile directly.
+    # This function will not be used by the test script.
+    return None
+
 def generate_content_strategy_report(user_profile):
     """
-    Generate a comprehensive Content Strategy Report using AI.
-    
-    Args:
-        user_profile (dict): User profile information including persona, interests, etc.
-        
-    Returns:
-        str: AI-generated content strategy report
+    Generates a personalized Content Strategy Report based on a persona profile.
+    This version now calls the OpenAI API.
     """
-    
-    # Extract user information
+    if not user_profile:
+        return "Error: user_profile cannot be None."
+
     persona = user_profile.get('persona', {})
     persona_name = persona.get('name', 'Content Creator')
-    persona_id = persona.get('id', 'general')
-    interests = user_profile.get('interests', [])
-    budget = user_profile.get('budget', 'Not specified')
-    
-    # Create detailed prompt for Content Strategy
-    prompt = f"""You are a CREATIVE STRATEGIST specializing in Filipino content creation. Your ONLY job is to generate content ideas and strategies.
+    channel_category = user_profile.get('channel_category', 'General')
+    mbti_type = user_profile.get('mbti', 'Not specified')
+    mbti_details = persona.get('mbti_details', 'Not specified')
 
-STRICT EXCLUSION RULE: DO NOT include any advice on monetization, performance optimization, analytics, or business strategies. Focus EXCLUSIVELY on creative content ideas.
+    prompt = f"""You are an expert Content Strategist for Filipino creators. Your task is to generate a Content Strategy Report that is deeply personalized based on the provided [Persona Profile].
 
-USER PROFILE:
-- Persona: {persona_name} ({persona_id})
-- Interests: {', '.join(interests) if interests else 'General content'}
-- Budget Context: {budget}
-- Target Market: Philippines
+Persona Profile:
+- Channel Category: {channel_category}
+- MBTI: {mbti_type} ({mbti_details})
 
-Generate a comprehensive Content Strategy Report with the following EXACT structure:
+Your output MUST strictly follow these rules:
 
-# 🎨 Content Strategy Report: {persona_name}
+1.  **Section 1 & 2 (Hot Topics & Seasonal Keywords):** All topics and keywords must be filtered and adapted to be directly relevant to the '{channel_category}' category. For example, if the category is "Beauty," you must suggest topics like "Glass Skin Trend" or "GRWM (Get Ready With Me)," NOT "DIY Home Projects."
 
-## 📊 Section 1: Current Hot Topics
-List 4-5 trending topics specifically relevant to Filipino audiences and the {persona_name} niche. Include:
-- Topic name with brief description
-- Why it's trending in the Philippines right now
-- How it relates to the {persona_id} persona
+2.  **Section 3 (Top 5 Concrete Content Ideas):** This is the most important section. Every single idea must be a direct reflection of both the Channel Category and the MBTI type.
+    -   **For the Channel Category:** The idea must be undeniably about this topic. (e.g., for "Beauty," it must be about makeup, skincare, etc.).
+    -   **For the MBTI type:** The angle and format of the idea must align with the personality traits of the {mbti_type}. For an "ESFP (Entertainer)," suggest social, engaging, and trend-focused formats like challenges or live streams. For an "INTP (Logician)," suggest analytical, deep-dive, or experimental formats.
 
-## 🌺 Section 2: Seasonal Keyword Recommendations
-Provide seasonal content ideas for the next 3 months, considering:
-- Filipino cultural events and holidays
-- Local weather patterns and seasons
-- Regional trends and celebrations
-- Shopping seasons and local festivals
+3.  **Strict Exclusion:** DO NOT include any advice on monetization or performance optimization. Focus 100% on personalized content strategy.
+"""
 
-Format as:
-- **Month/Season**: Specific keyword suggestions and content themes
+    try:
+        # --- OpenAI API Call ---
+        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        
+        response = client.chat.completions.create(
+            model="gpt-4-turbo",
+            messages=[
+                {"role": "system", "content": "You are an expert Content Strategist for Filipino creators."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=1500,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0
+        )
+        
+        report_content = response.choices[0].message.content
+        return report_content.strip()
 
-## 💡 Section 3: Top 5 Concrete Content Ideas
-
-For each content idea, provide:
-
-### [Number]. "[Catchy Title in Filipino/English Mix]"
-- **Format**: [Video type - vlog, tutorial, review, etc.]
-- **Estimated Views**: [Realistic range based on niche]
-- **Target Keywords**: [3-4 specific hashtags/keywords]
-- **Content Angle**: [Unique perspective or hook]
-- **Ideal Length**: [Suggested duration]
-- **Best Platform**: [YouTube, TikTok, Instagram, etc.]
-- **Hook Strategy**: [How to grab attention in first 3 seconds]
-
-CONTENT GUIDELINES:
-- Mix Filipino and English naturally (Taglish style)
-- Consider Filipino cultural context and values
-- Include relatable everyday situations
-- Focus on authentic, personal storytelling
-- Consider local trends and current events
-- Make content accessible to diverse Filipino audiences
-
-IMPORTANT CONSTRAINTS:
-- DO NOT mention monetization strategies
-- DO NOT include performance metrics or analytics advice
-- DO NOT suggest business development ideas
-- FOCUS ONLY on creative content concepts and execution
-- Keep tone conversational and inspiring
-
-Generate the report now, following this structure exactly."""
-
-    # For now, return the prompt (in actual implementation, this would call an AI service)
-    # TODO: Replace with actual AI API call (OpenAI, Anthropic, etc.)
-    return f"""# 🎨 Content Strategy Report: {persona_name}
-
-## 📊 Section 1: Current Hot Topics
-
-### 1. "Sustainable Living sa Pilipinas"
-Filipino audiences are increasingly interested in eco-friendly lifestyle choices. This trend resonates with the {persona_name} persona as it combines practical advice with social responsibility, appealing to conscious consumers.
-
-### 2. "Budget-Friendly DIY Projects"
-With economic awareness growing, Filipinos love creative solutions that don't break the bank. Perfect for {persona_id} content that showcases creativity and resourcefulness.
-
-### 3. "Local Brand Discovery"
-Supporting local brands and discovering hidden gems is trending. This aligns with Filipino values of community support and national pride.
-
-### 4. "Work-From-Home Setup Evolution"
-Remote work culture continues to evolve, making workspace optimization content highly relevant for Filipino professionals.
-
-### 5. "Traditional Filipino Skills Modernized"
-Young Filipinos are rediscovering traditional crafts and skills with modern twists, creating engaging cultural content.
-
-## 🌺 Section 2: Seasonal Keyword Recommendations
-
-- **July-August (Rainy Season)**: Indoor activities, cozy home setups, comfort food recipes, productivity tips, creative hobbies, "rainy day vibes"
-
-- **September-October (Back to School/Work)**: Organization hacks, morning routines, productivity tips, budget planning, "fresh start energy", study spaces
-
-- **November-December (Holiday Season)**: Gift guides, holiday decorating on a budget, family traditions, year-end reflections, "Pasko preparations", local holiday food
-
-## 💡 Section 3: Top 5 Concrete Content Ideas
-
-### 1. "30-Day Local Brand Challenge: Discovering Hidden Filipino Gems"
-- **Format**: Series of short vlogs/reviews
-- **Estimated Views**: 15K-25K per episode
-- **Target Keywords**: #LocalPH #SupportLocal #PilipinoProducts #HiddenGems
-- **Content Angle**: Authentic discovery journey with personal reactions and honest reviews
-- **Ideal Length**: 5-8 minutes per episode
-- **Best Platform**: YouTube with TikTok snippets
-- **Hook Strategy**: "Napaka-gandang packaging nito, but wait 'til you see what's inside!"
-
-### 2. "Filipino Comfort Food + Modern Twist Cooking Series"
-- **Format**: Recipe tutorial with storytelling
-- **Estimated Views**: 20K-35K
-- **Target Keywords**: #FilipinoCooking #ComfortFood #ModernClassics #KainTayo
-- **Content Angle**: Connecting family memories with modern cooking techniques
-- **Ideal Length**: 10-15 minutes
-- **Best Platform**: YouTube main, Instagram for quick versions
-- **Hook Strategy**: "Lola's recipe meets Gen Z creativity - you won't believe this transformation!"
-
-### 3. "Minimalist Filipino Home Tour: Small Space, Big Style"
-- **Format**: Home tour with styling tips
-- **Estimated Views**: 18K-28K
-- **Target Keywords**: #MinimalistPH #SmallSpaceBigStyle #FilipinHomeTour #BudgetDecor
-- **Content Angle**: Proving style doesn't require big spaces or budgets
-- **Ideal Length**: 8-12 minutes
-- **Best Platform**: YouTube with Instagram carousel posts
-- **Hook Strategy**: "300 sqm lang 'to pero tingnan ninyo kung gaano ka-cozy!"
-
-### 4. "Rainy Day Creative Sessions: DIY Projects with Filipino Materials"
-- **Format**: Tutorial with creative process
-- **Estimated Views**: 12K-22K
-- **Target Keywords**: #DIYFilipino #CreativeProjects #RainyDayActivities #LocalMaterials
-- **Content Angle**: Using readily available Filipino materials for unique projects
-- **Ideal Length**: 15-20 minutes
-- **Best Platform**: YouTube with time-lapse on TikTok
-- **Hook Strategy**: "Sino may akala na coffee sacks pwede maging ganito ka-ganda?"
-
-### 5. "Manila Traffic Survival Guide: Productive Commute Hacks"
-- **Format**: Lifestyle vlog with practical tips
-- **Estimated Views**: 25K-40K
-- **Target Keywords**: #CommuterLife #ProductivityHacks #ManilaTraffic #FilipinoCommunity
-- **Content Angle**: Turning daily struggles into opportunities for growth
-- **Ideal Length**: 6-10 minutes
-- **Best Platform**: TikTok series with YouTube compilation
-- **Hook Strategy**: "3 hours sa traffic? Here's how I turned it into my most productive time!"
-
----
-
-*🎨 This content strategy focuses purely on creative ideas and audience engagement, tailored for Filipino content creators.*"""
+    except Exception as e:
+        print(f"An error occurred while calling OpenAI API: {e}")
+        return f"Error: Failed to generate report due to an API error. Please check API key and service status. Details: {e}"
 
 
 def generate_monetization_plan_report(user_profile):
