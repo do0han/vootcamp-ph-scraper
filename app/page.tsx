@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, useMemo, Suspense } from 'react'
 import { PersonaSelector } from './components/PersonaSelector'
 import { GenerateButton } from './components/GenerateButton'
-import { ReportDisplay } from './components/ReportDisplay'
+import { DynamicReportDisplay } from './components/DynamicReportDisplay'
 import { LoadingState } from './components/LoadingState'
 import { PremiumHint } from './components/PremiumHint'
 import { ReportHistory } from './components/ReportHistory'
@@ -141,7 +141,7 @@ export default function HomePage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [report, setReport] = useState<string | null>(null)
 
-  const handleGenerate = async () => {
+  const handleGenerate = useCallback(async () => {
     if (!selectedPersona) return
     
     setIsGenerating(true)
@@ -194,14 +194,29 @@ export default function HomePage() {
     } finally {
       setIsGenerating(false)
     }
-  }
+  }, [selectedPersona, selectedReportType])
 
-  const handleSaveReport = () => {
+  const handleSaveReport = useCallback(() => {
     if (report && selectedPersona && typeof window !== 'undefined' && (window as any).saveReport) {
       (window as any).saveReport(selectedPersona.name, selectedPersona.emoji, report)
       // TODO: Show success toast
     }
-  }
+  }, [report, selectedPersona])
+
+  // Memoize heavy computations
+  const availablePersonas = useMemo(() => PERSONAS, [])
+  
+  const handlePersonaSelect = useCallback((persona: Persona) => {
+    setSelectedPersona(persona)
+  }, [])
+  
+  const handleReportTypeSelect = useCallback((type: ReportType) => {
+    setSelectedReportType(type)
+  }, [])
+  
+  const handleLoadReport = useCallback((reportContent: string) => {
+    setReport(reportContent)
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -220,7 +235,7 @@ export default function HomePage() {
             </div>
             
             <div className="flex items-center space-x-3">
-              <ReportHistory onLoadReport={setReport} />
+              <ReportHistory onLoadReport={handleLoadReport} />
               <PremiumHint />
             </div>
           </div>
@@ -242,14 +257,14 @@ export default function HomePage() {
             </div>
 
             <PersonaSelector
-              personas={PERSONAS}
+              personas={availablePersonas}
               selectedPersona={selectedPersona}
-              onSelect={setSelectedPersona}
+              onSelect={handlePersonaSelect}
             />
 
             <ReportTypeSelector
               selectedType={selectedReportType}
-              onSelect={setSelectedReportType}
+              onSelect={handleReportTypeSelect}
             />
 
             <GenerateButton
@@ -304,9 +319,11 @@ export default function HomePage() {
                     <span>저장</span>
                   </button>
                 </div>
-                <ReportDisplay 
-                  report={report} 
-                />
+                <Suspense fallback={<LoadingState />}>
+                  <DynamicReportDisplay 
+                    report={report} 
+                  />
+                </Suspense>
               </div>
             )}
           </div>

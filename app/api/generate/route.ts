@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { spawn } from 'child_process'
 import path from 'path'
 
+// Simple in-memory cache for demonstration
+const cache = new Map<string, { data: string, timestamp: number }>()
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
 interface GenerateRequest {
   persona_id: string
+  report_type?: string
 }
 
 interface GenerateResponse {
@@ -14,13 +19,21 @@ interface GenerateResponse {
 export async function POST(request: NextRequest): Promise<NextResponse<GenerateResponse>> {
   try {
     const body: GenerateRequest = await request.json()
-    const { persona_id } = body
+    const { persona_id, report_type = 'content_ideas' } = body
 
     if (!persona_id) {
       return NextResponse.json(
         { error: 'persona_id is required' },
         { status: 400 }
       )
+    }
+
+    // Check cache first
+    const cacheKey = `${persona_id}-${report_type}`
+    const cached = cache.get(cacheKey)
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      console.log(`🚀 Cache hit for ${cacheKey}`)
+      return NextResponse.json({ report: cached.data })
     }
 
     // Map frontend persona IDs to backend persona names
@@ -54,6 +67,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<GenerateR
     }
 
     console.log(`✅ Successfully generated report for ${persona_id}`)
+    
+    // Cache the result
+    cache.set(cacheKey, { data: report, timestamp: Date.now() })
     
     return NextResponse.json({ report })
 
