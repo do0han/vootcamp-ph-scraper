@@ -29,15 +29,15 @@ class SupabaseClient:
     def _ensure_client(self):
         """클라이언트가 초기화되지 않았다면 초기화"""
         if not self._initialized:
-        load_dotenv()
-        
+            load_dotenv()
+            
             # Supabase 설정 확인
-        url: str = os.getenv("SUPABASE_URL")
-        key: str = os.getenv("SUPABASE_KEY")
-        
-        if not url or not key:
-            raise ValueError("Supabase URL and key must be set in environment variables")
-                
+            url: str = os.getenv("SUPABASE_URL")
+            key: str = os.getenv("SUPABASE_KEY")
+            
+            if not url or not key:
+                raise ValueError("Supabase URL and key must be set in environment variables")
+                    
             self.client = get_singleton_client()
             self._initialized = True
     

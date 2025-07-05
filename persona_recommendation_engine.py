@@ -16,7 +16,7 @@ class PersonaProfile:
     name: str
     age_group: str
     income_level: str
-    interests: List[str]
+    interests: List[Dict[str, Any]]  # 새로운 구조: [{"keyword": "workwear", "related": ["blazer", "tote bag"]}]
     shopping_behavior: Dict[str, Any]
     social_platforms: List[str]
     preferred_content: List[str]
@@ -48,9 +48,16 @@ class ContentIdea:
 class PersonaRecommendationEngine:
     """페르소나 맞춤 추천 엔진"""
     
-    def __init__(self):
+    def __init__(self, debug_mode: bool = False):
+        self.debug_mode = debug_mode
         self.personas = self._define_personas()
         self.trend_data = self._get_current_trends()
+        self.debug_log = []  # Store debug information
+        
+        if self.debug_mode:
+            self._debug_print("🎯 PersonaRecommendationEngine initialized in debug mode")
+            self._debug_print(f"📊 Loaded {len(self.personas)} personas")
+            self._debug_print(f"📈 Loaded {len(self.trend_data)} trend data points")
     
     def _define_personas(self) -> Dict[str, PersonaProfile]:
         """타겟 페르소나 정의"""
@@ -59,7 +66,12 @@ class PersonaRecommendationEngine:
                 name="마리아 (Young Filipina Beauty Enthusiast)",
                 age_group="18-25",
                 income_level="Lower-Middle",
-                interests=["K-beauty", "skincare", "makeup tutorials", "affordable beauty"],
+                interests=[
+                    {"keyword": "K-beauty", "related": ["korean skincare", "k-skincare", "korean makeup", "korean cosmetics", "korean brand"]},
+                    {"keyword": "skincare", "related": ["serum", "moisturizer", "cleanser", "toner", "sunscreen", "face mask", "retinol", "vitamin c"]},
+                    {"keyword": "makeup tutorials", "related": ["makeup", "tutorial", "cosmetics", "lip tint", "foundation", "concealer", "eyeshadow", "blush"]},
+                    {"keyword": "affordable beauty", "related": ["budget", "cheap", "affordable", "drugstore", "dupe", "budget-friendly"]}
+                ],
                 shopping_behavior={
                     "price_sensitive": True,
                     "influenced_by_reviews": True,
@@ -76,7 +88,12 @@ class PersonaRecommendationEngine:
                 name="안나 (Young Professional Fashionista)",
                 age_group="25-32",
                 income_level="Middle",
-                interests=["sustainable fashion", "workwear", "Korean fashion", "accessories"],
+                interests=[
+                    {"keyword": "sustainable fashion", "related": ["eco-friendly", "recycled", "organic cotton", "upcycled", "ethical fashion", "green fashion", "sustainable"]},
+                    {"keyword": "workwear", "related": ["blazer", "tote bag", "slacks", "office look", "shirt", "blouse", "work outfit", "professional", "business casual", "office wear"]},
+                    {"keyword": "Korean fashion", "related": ["k-fashion", "hongdae style", "wide pants", "seoul fashion", "korean style", "korean brand"]},
+                    {"keyword": "accessories", "related": ["bag", "handbag", "jewelry", "watch", "scarf", "belt", "purse", "wallet", "tote", "crossbody"]}
+                ],
                 shopping_behavior={
                     "quality_focused": True,
                     "brand_conscious": True,
@@ -93,7 +110,12 @@ class PersonaRecommendationEngine:
                 name="제시카 (K-pop & Korean Culture Fan)",
                 age_group="16-28",
                 income_level="Lower-Middle",
-                interests=["K-pop", "Korean skincare", "K-drama", "Korean food"],
+                interests=[
+                    {"keyword": "K-pop", "related": ["idol", "korean music", "k-music", "korean idol", "boy group", "girl group", "kpop", "korean pop"]},
+                    {"keyword": "Korean skincare", "related": ["k-beauty", "korean cosmetics", "korean makeup", "korean brand", "skincare", "k-skincare"]},
+                    {"keyword": "K-drama", "related": ["korean drama", "kdrama", "korean series", "korean actor", "korean actress", "korean show"]},
+                    {"keyword": "Korean food", "related": ["korean cuisine", "k-food", "korean restaurant", "korean snack", "kimchi", "ramen", "korean cooking"]}
+                ],
                 shopping_behavior={
                     "trend_follower": True,
                     "idol_influenced": True,
@@ -139,15 +161,208 @@ class PersonaRecommendationEngine:
             print(f"트렌드 데이터 로드 실패: {e}")
             return {"fashion": 86, "makeup": 62, "skincare": 25, "k-pop": 22}
     
+    def _debug_print(self, message: str):
+        """Print debug message and store in log"""
+        if self.debug_mode:
+            print(f"🔍 {message}")
+            self.debug_log.append(f"{datetime.now().strftime('%H:%M:%S')} - {message}")
+    
+    def _fuzzy_match(self, keyword: str, text: str) -> bool:
+        """Enhanced matching for better keyword detection"""
+        # 특별한 매칭 규칙들
+        special_matches = {
+            "skincare": ["스킨케어", "세럼", "retinol", "레티놀"],
+            "makeup": ["메이크업", "립밤", "lip", "틴트", "tint"],
+            "tote bag": ["토트백", "토트 백", "bag"],
+            "blazer": ["블레이저"],
+            "sustainable": ["서스테이너블", "지속가능"],
+            "korean": ["한국", "코리안", "k-"],
+            "accessories": ["액세서리", "가방", "bag"]
+        }
+        
+        # 특별 매칭 규칙 확인
+        for match_keyword, variants in special_matches.items():
+            if keyword in match_keyword or match_keyword in keyword:
+                for variant in variants:
+                    if variant in text:
+                        return True
+        
+        return False
+    
+    def _calculate_product_score(self, product_name: str, category: str, persona: PersonaProfile) -> Dict[str, Any]:
+        """Calculate detailed scoring for product recommendations"""
+        scoring_details = {
+            "product_name": product_name,
+            "category": category,
+            "base_score": 0,
+            "trend_boost": 0,
+            "persona_match": 0,
+            "interest_alignment": 0,
+            "platform_match": 0,
+            "budget_compatibility": 0,
+            "final_score": 0,
+            "scoring_breakdown": []
+        }
+        
+        # Base score (30 points max)
+        base_score = 30
+        scoring_details["base_score"] = base_score
+        scoring_details["scoring_breakdown"].append(f"Base product score: +{base_score}")
+        
+        # Trend boost based on category (25 points max)
+        trend_boost = 0
+        category_lower = category.lower()
+        matched_trends = []
+        
+        for trend_keyword, trend_score in self.trend_data.items():
+            keyword_lower = trend_keyword.lower()
+            # Check for category-trend matches
+            if (keyword_lower in category_lower or 
+                category_lower in keyword_lower or
+                (category_lower == "메이크업" and keyword_lower == "makeup") or
+                (category_lower == "makeup" and keyword_lower == "makeup") or
+                (category_lower == "스킨케어" and keyword_lower == "skincare") or
+                (category_lower == "skincare" and keyword_lower == "skincare") or
+                (category_lower == "패션" and keyword_lower == "fashion") or
+                (category_lower == "fashion" and keyword_lower == "fashion")):
+                # Scale trend score to max 25 points (trend scores are typically 0-100)
+                boost = min(25, int(trend_score * 0.25))
+                trend_boost += boost
+                matched_trends.append(f"{trend_keyword}({trend_score})")
+        
+        trend_boost = min(25, trend_boost)
+        scoring_details["trend_boost"] = trend_boost
+        
+        if matched_trends:
+            scoring_details["scoring_breakdown"].append(f"Trend boost ({', '.join(matched_trends)}): +{trend_boost}")
+        else:
+            scoring_details["scoring_breakdown"].append(f"Trend boost (no matches): +{trend_boost}")
+        
+        # Smart Interest Alignment (20 points max)
+        interest_score = 0
+        matching_interests = []
+        matched_interest_categories = set()  # 중복 점수 방지
+        
+        # 상품명과 카테고리를 소문자로 변환하여 검색 대상 텍스트 준비
+        search_text = f"{product_name.lower()} {category_lower}".strip()
+        
+        if self.debug_mode:
+            self._debug_print(f"   🔎 Smart Interest Matching for: {product_name}")
+            self._debug_print(f"      Search text: '{search_text}'")
+        
+        for interest_obj in persona.interests:
+            keyword = interest_obj["keyword"]
+            related_keywords = interest_obj["related"]
+            
+            # 해당 관심사 카테고리가 이미 매칭되었는지 확인
+            if keyword in matched_interest_categories:
+                continue
+            
+            match_found = False
+            matched_keyword = None
+            
+            # 1. 메인 키워드 확인 (부분 문자열 매칭 포함)
+            keyword_lower = keyword.lower()
+            if (keyword_lower in search_text or 
+                any(part in search_text for part in keyword_lower.split()) or
+                self._fuzzy_match(keyword_lower, search_text)):
+                match_found = True
+                matched_keyword = keyword
+                if self.debug_mode:
+                    self._debug_print(f"      ✓ Main keyword match: '{keyword}'")
+            
+            # 2. 관련 키워드 확인 (향상된 매칭)
+            if not match_found:
+                for related in related_keywords:
+                    related_lower = related.lower()
+                    if (related_lower in search_text or 
+                        any(part in search_text for part in related_lower.split()) or
+                        self._fuzzy_match(related_lower, search_text)):
+                        match_found = True
+                        matched_keyword = related
+                        if self.debug_mode:
+                            self._debug_print(f"      ✓ Related keyword match: '{related}' for '{keyword}'")
+                        break
+            
+            # 매칭이 발견되면 점수 부여 (관심사당 8점)
+            if match_found:
+                interest_score += 8
+                matching_interests.append(f"{keyword} -> {matched_keyword}")
+                matched_interest_categories.add(keyword)
+                
+                if self.debug_mode:
+                    self._debug_print(f"      🎯 Interest match: {keyword} -> {matched_keyword} (+8 points)")
+        
+        interest_score = min(20, interest_score)
+        scoring_details["interest_alignment"] = interest_score
+        
+        if matching_interests:
+            scoring_details["scoring_breakdown"].append(f"Interest alignment ({', '.join(matching_interests)}): +{interest_score}")
+            if self.debug_mode:
+                self._debug_print(f"      📊 Total interest score: +{interest_score}")
+        else:
+            scoring_details["scoring_breakdown"].append(f"Interest alignment (no matches): +{interest_score}")
+            if self.debug_mode:
+                self._debug_print(f"      ❌ No interest matches found")
+        
+        # Platform compatibility (15 points max)
+        platform_score = 0
+        if category_lower in ["beauty", "makeup", "skincare"] and "TikTok" in persona.social_platforms:
+            platform_score += 8
+            scoring_details["scoring_breakdown"].append("Platform match (TikTok + Beauty): +8")
+        elif category_lower in ["fashion", "accessories"] and "Instagram" in persona.social_platforms:
+            platform_score += 8
+            scoring_details["scoring_breakdown"].append("Platform match (Instagram + Fashion): +8")
+        
+        if "Shopee" in persona.social_platforms or "Lazada" in persona.social_platforms:
+            platform_score += 7
+            scoring_details["scoring_breakdown"].append("E-commerce platform familiarity: +7")
+        
+        platform_score = min(15, platform_score)
+        scoring_details["platform_match"] = platform_score
+        
+        # Budget compatibility (10 points max)
+        budget_score = 10  # Assume compatible unless we have specific price data
+        scoring_details["budget_compatibility"] = budget_score
+        scoring_details["scoring_breakdown"].append(f"Budget compatibility: +{budget_score}")
+        
+        # Calculate final score
+        final_score = base_score + trend_boost + interest_score + platform_score + budget_score
+        scoring_details["final_score"] = final_score
+        
+        if self.debug_mode:
+            self._debug_print(f"📊 Product Scoring: {product_name}")
+            self._debug_print(f"   Category: {category} | Persona: {persona.name}")
+            for breakdown in scoring_details["scoring_breakdown"]:
+                self._debug_print(f"   • {breakdown}")
+            self._debug_print(f"   🎯 Final Score: {final_score}/100")
+            self._debug_print("")
+        
+        return scoring_details
+    
     def generate_product_recommendations(self, persona_name: str) -> List[ProductRecommendation]:
         """페르소나별 제품 추천 생성"""
         persona = self.personas.get(persona_name)
         if not persona:
             return []
         
+        if self.debug_mode:
+            self._debug_print(f"🎯 Generating product recommendations for: {persona.name}")
+            self._debug_print(f"   Age Group: {persona.age_group}")
+            self._debug_print(f"   Budget Range: ₱{persona.budget_range[0]}-{persona.budget_range[1]}")
+            # 새로운 구조에 맞게 관심사 표시
+            interest_keywords = [interest["keyword"] for interest in persona.interests[:3]]
+            self._debug_print(f"   Key Interests: {', '.join(interest_keywords)}")
+            self._debug_print("")
+        
         recommendations = []
         
         if persona_name == "young_filipina_beauty":
+            # Calculate scores for each product
+            product_1_scoring = self._calculate_product_score("세트레티놀 나이트 세럼", "스킨케어", persona)
+            product_2_scoring = self._calculate_product_score("콜로어팝 틴티드 립밤", "메이크업", persona)
+            product_3_scoring = self._calculate_product_score("유니클로 에어리즘 UV 프로텍션 티셔츠", "패션", persona)
+            
             recommendations.extend([
                 ProductRecommendation(
                     product_name="세트레티놀 나이트 세럼",
@@ -156,7 +371,7 @@ class PersonaRecommendationEngine:
                     why_recommended=f"트렌드 스코어 {self.trend_data.get('skincare', 25)}점. 저렴하면서도 효과적인 레티놀 제품으로 TikTok에서 화제",
                     where_to_buy=["Shopee", "Lazada", "Watsons"],
                     content_angle="30일 스킨케어 챌린지 - 레티놀 첫 사용 후기",
-                    trending_score=self.trend_data.get('skincare', 25)
+                    trending_score=product_1_scoring["final_score"]
                 ),
                 ProductRecommendation(
                     product_name="콜로어팝 틴티드 립밤",
@@ -165,7 +380,7 @@ class PersonaRecommendationEngine:
                     why_recommended=f"트렌드 스코어 {self.trend_data.get('makeup', 62)}점. 저렴한 K-beauty 듀프로 인기 급상승",
                     where_to_buy=["Beauty MNL", "Shopee", "Sephora PH"],
                     content_angle="비싼 립스틱 vs 저렴한 듀프 비교 리뷰",
-                    trending_score=self.trend_data.get('makeup', 62)
+                    trending_score=product_2_scoring["final_score"]
                 ),
                 ProductRecommendation(
                     product_name="유니클로 에어리즘 UV 프로텍션 티셔츠",
@@ -174,11 +389,15 @@ class PersonaRecommendationEngine:
                     why_recommended=f"트렌드 스코어 {self.trend_data.get('fashion', 86)}점. 필리핀 날씨에 완벽하고 합리적인 가격",
                     where_to_buy=["Uniqlo PH", "Zalora", "Shopee"],
                     content_angle="필리핀 더위 이기는 시원한 패션 아이템 5가지",
-                    trending_score=self.trend_data.get('fashion', 86)
+                    trending_score=product_3_scoring["final_score"]
                 )
             ])
         
         elif persona_name == "young_professional_fashionista":
+            # Calculate scores for each product
+            product_1_scoring = self._calculate_product_score("망고 서스테이너블 블레이저", "패션", persona)
+            product_2_scoring = self._calculate_product_score("COS 미니멀 토트백", "액세서리", persona)
+            
             recommendations.extend([
                 ProductRecommendation(
                     product_name="망고 서스테이너블 블레이저",
@@ -187,7 +406,7 @@ class PersonaRecommendationEngine:
                     why_recommended=f"트렌드 스코어 {self.trend_data.get('fashion', 86)}점. 지속가능한 패션이면서 직장에서 입기 좋음",
                     where_to_buy=["Mango PH", "Zalora", "Lazada"],
                     content_angle="직장인을 위한 지속가능한 패션 - 1주일 코디 아이디어",
-                    trending_score=self.trend_data.get('fashion', 86)
+                    trending_score=product_1_scoring["final_score"]
                 ),
                 ProductRecommendation(
                     product_name="COS 미니멀 토트백",
@@ -196,11 +415,15 @@ class PersonaRecommendationEngine:
                     why_recommended="미니멀하면서도 실용적인 디자인으로 전문직 여성들에게 인기",
                     where_to_buy=["COS PH", "Zalora", "Rustan's"],
                     content_angle="투자 가치 있는 가방 - 10년 쓸 수 있는 백 추천",
-                    trending_score=75
+                    trending_score=product_2_scoring["final_score"]
                 )
             ])
         
         elif persona_name == "kpop_enthusiast":
+            # Calculate scores for each product
+            product_1_scoring = self._calculate_product_score("뉴진스 협업 한나 립 틴트", "메이크업", persona)
+            product_2_scoring = self._calculate_product_score("아이유 아이유어 스킨케어 세트", "스킨케어", persona)
+            
             recommendations.extend([
                 ProductRecommendation(
                     product_name="뉴진스 협업 한나 립 틴트",
@@ -209,7 +432,7 @@ class PersonaRecommendationEngine:
                     why_recommended=f"트렌드 스코어 {self.trend_data.get('k-pop', 22)}점 + {self.trend_data.get('makeup', 62)}점. 아이돌 협업 제품으로 팬들에게 필수템",
                     where_to_buy=["Shopee", "Beauty MNL", "Olive Young PH"],
                     content_angle="뉴진스 멤버별 메이크업 따라하기 - 하니 스타일",
-                    trending_score=self.trend_data.get('k-pop', 22) + self.trend_data.get('makeup', 62)
+                    trending_score=product_1_scoring["final_score"]
                 ),
                 ProductRecommendation(
                     product_name="아이유 아이유어 스킨케어 세트",
@@ -218,7 +441,7 @@ class PersonaRecommendationEngine:
                     why_recommended=f"K-pop 스타 아이유의 스킨케어 브랜드로 한국 뷰티 트렌드 반영",
                     where_to_buy=["Shopee", "Lazada", "BeautyMNL"],
                     content_angle="아이유처럼 글로우한 피부 만들기 - 30일 챌린지",
-                    trending_score=self.trend_data.get('k-pop', 22) + self.trend_data.get('skincare', 25)
+                    trending_score=product_2_scoring["final_score"]
                 )
             ])
         
@@ -231,6 +454,15 @@ class PersonaRecommendationEngine:
         
         if not persona:
             return []
+        
+        if self.debug_mode:
+            self._debug_print(f"💡 Generating content ideas for: {persona.name}")
+            self._debug_print(f"   Platform preferences: {', '.join(persona.social_platforms)}")
+            self._debug_print(f"   Content types: {', '.join(persona.preferred_content)}")
+            # 관심사 키워드 표시
+            interest_keywords = [interest["keyword"] for interest in persona.interests]
+            self._debug_print(f"   Interest keywords: {', '.join(interest_keywords)}")
+            self._debug_print("")
         
         content_ideas = []
         
@@ -352,16 +584,42 @@ class PersonaRecommendationEngine:
     
     def generate_full_recommendation_report(self) -> Dict[str, Any]:
         """전체 추천 리포트 생성"""
+        if self.debug_mode:
+            self._debug_print("📋 Generating full recommendation report...")
+            self._debug_print("")
+        
         report = {
             "generated_at": datetime.now().isoformat(),
+            "debug_mode": self.debug_mode,
             "trend_data": self.trend_data,
             "personas": {}
         }
         
+        if self.debug_mode:
+            report["debug_log"] = self.debug_log.copy()
+        
         for persona_name in self.personas.keys():
+            if self.debug_mode:
+                print(f"\n{'='*60}")
+                print(f"👤 PERSONA ANALYSIS: {self.personas[persona_name].name}")
+                print(f"{'='*60}")
+            
             persona = self.personas[persona_name]
             recommendations = self.generate_product_recommendations(persona_name)
             content_ideas = self.generate_content_ideas(persona_name)
+            
+            # Calculate persona statistics
+            total_score = sum(rec.trending_score for rec in recommendations)
+            avg_score = total_score / len(recommendations) if recommendations else 0
+            high_score_products = [rec for rec in recommendations if rec.trending_score >= 70]
+            
+            if self.debug_mode:
+                self._debug_print(f"📊 Persona Summary Statistics:")
+                self._debug_print(f"   Total Products: {len(recommendations)}")
+                self._debug_print(f"   Average Score: {avg_score:.1f}/100")
+                self._debug_print(f"   High Score Products (≥70): {len(high_score_products)}")
+                self._debug_print(f"   Content Ideas Generated: {len(content_ideas)}")
+                self._debug_print("")
             
             report["personas"][persona_name] = {
                 "profile": {
@@ -369,7 +627,13 @@ class PersonaRecommendationEngine:
                     "age_group": persona.age_group,
                     "income_level": persona.income_level,
                     "budget_range": f"₱{persona.budget_range[0]}-{persona.budget_range[1]}",
-                    "main_interests": persona.interests[:3]
+                    "main_interests": [interest["keyword"] for interest in persona.interests[:3]]
+                },
+                "statistics": {
+                    "total_products": len(recommendations),
+                    "average_score": round(avg_score, 1),
+                    "high_score_products": len(high_score_products),
+                    "content_ideas_count": len(content_ideas)
                 },
                 "product_recommendations": [
                     {
@@ -389,6 +653,22 @@ class PersonaRecommendationEngine:
                     } for idea in content_ideas
                 ]
             }
+        
+        if self.debug_mode:
+            print(f"\n{'='*80}")
+            print("🎯 TRANSPARENCY REPORT SUMMARY")
+            print(f"{'='*80}")
+            print(f"📊 Total Personas Analyzed: {len(self.personas)}")
+            print(f"📈 Total Trend Keywords Used: {len(self.trend_data)}")
+            
+            total_products = sum(len(persona_data["product_recommendations"]) for persona_data in report["personas"].values())
+            total_content = sum(len(persona_data["content_ideas"]) for persona_data in report["personas"].values())
+            
+            print(f"🛍️ Total Product Recommendations: {total_products}")
+            print(f"💡 Total Content Ideas: {total_content}")
+            print(f"🔍 Debug Log Entries: {len(self.debug_log)}")
+            print(f"⏰ Report Generated: {report['generated_at']}")
+            print(f"{'='*80}")
         
         return report
 

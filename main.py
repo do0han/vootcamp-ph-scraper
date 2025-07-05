@@ -2,6 +2,7 @@
 Main entry point for Vootcamp PH Data Scraper
 """
 
+import argparse
 import logging
 import sys
 import time
@@ -33,6 +34,9 @@ from engines.event_trend_analyzer import EventTrendAnalyzer
 # Import utilities
 from utils.anti_bot_system import AntiBotSystem
 from utils.ethical_scraping import ScrapingPolicy
+
+# Import persona recommendation engine
+from persona_recommendation_engine import PersonaRecommendationEngine
 
 
 def setup_logging():
@@ -485,69 +489,194 @@ def generate_summary_report(all_results: List[Dict[str, Any]], logger):
     logger.info("=" * 60)
 
 
+def parse_arguments():
+    """Parse command line arguments"""
+    parser = argparse.ArgumentParser(
+        description="Vootcamp PH Data Scraper with Persona Recommendation Engine",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python main.py                    # Run normal scraping pipeline
+  python main.py --debug            # Run with transparency report (debug mode)
+  python main.py --persona-only     # Run only persona recommendation engine
+  python main.py --debug --persona-only  # Run persona engine with debug output
+        """
+    )
+    
+    parser.add_argument(
+        '--debug', 
+        action='store_true',
+        help='Enable debug mode with transparency report showing detailed scoring'
+    )
+    
+    parser.add_argument(
+        '--persona-only',
+        action='store_true', 
+        help='Run only the persona recommendation engine (skip scrapers)'
+    )
+    
+    return parser.parse_args()
+
+def run_persona_recommendation_engine(debug_mode: bool = False, logger=None) -> Dict[str, Any]:
+    """Run Persona Recommendation Engine with optional debug mode"""
+    engine_name = "Persona Recommendation Engine"
+    results = {"name": engine_name, "success": False, "data_count": 0, "error": None, "duration": 0}
+    
+    start_time = time.time()
+    if logger:
+        logger.info(f"🎯 Starting {engine_name}...")
+        if debug_mode:
+            logger.info("🔍 Debug mode enabled - transparency report will be generated")
+    
+    try:
+        engine = PersonaRecommendationEngine(debug_mode=debug_mode)
+        
+        if debug_mode:
+            print("\n" + "="*80)
+            print("🔍 PERSONA RECOMMENDATION ENGINE - TRANSPARENCY REPORT")
+            print("="*80)
+        
+        # Generate recommendations for all personas
+        full_report = engine.generate_full_recommendation_report()
+        
+        # Count total recommendations generated
+        total_recommendations = 0
+        total_content_ideas = 0
+        
+        for persona_data in full_report.get("personas", {}).values():
+            total_recommendations += len(persona_data.get("product_recommendations", []))
+            total_content_ideas += len(persona_data.get("content_ideas", []))
+        
+        results["success"] = True
+        results["data_count"] = total_recommendations + total_content_ideas
+        results["persona_stats"] = {
+            "total_personas": len(full_report.get("personas", {})),
+            "total_product_recommendations": total_recommendations,
+            "total_content_ideas": total_content_ideas,
+            "debug_mode": debug_mode
+        }
+        
+        if logger:
+            logger.info(f"✅ {engine_name} completed successfully")
+            logger.info(f"📊 Generated {total_recommendations} product recommendations")
+            logger.info(f"💡 Generated {total_content_ideas} content ideas")
+            logger.info(f"👥 Analyzed {len(full_report.get('personas', {}))} personas")
+            
+            if debug_mode:
+                logger.info("🔍 Debug transparency report displayed above")
+        
+        # Save report to file
+        import json
+        filename = f"persona_recommendations_{'debug_' if debug_mode else ''}{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(full_report, f, ensure_ascii=False, indent=2)
+        
+        if logger:
+            logger.info(f"📁 Report saved to: {filename}")
+            
+    except Exception as e:
+        results["error"] = str(e)
+        if logger:
+            logger.error(f"❌ {engine_name} failed: {e}")
+            logger.error(traceback.format_exc())
+    
+    finally:
+        results["duration"] = round(time.time() - start_time, 2)
+        if logger:
+            logger.info(f"⏱️ {engine_name} execution time: {results['duration']} seconds")
+    
+    return results
+
 def main():
     """Main orchestration function"""
+    args = parse_arguments()
+    
     logger = setup_logging()
     logger.info("=" * 60)
-    logger.info("🇵🇭 VOOTCAMP PH CORE 5 SCRAPERS + EVENT-TREND ANALYZER - STARTING")
-    logger.info("📊 Focus: Google Trends + Lazada Persona + TikTok Shop + Local Events + Event-Trend Analysis")
+    
+    if args.persona_only:
+        logger.info("🎯 VOOTCAMP PH PERSONA RECOMMENDATION ENGINE - STARTING")
+        if args.debug:
+            logger.info("🔍 DEBUG MODE - Transparency Report Enabled")
+    else:
+        logger.info("🇵🇭 VOOTCAMP PH CORE 5 SCRAPERS + EVENT-TREND ANALYZER - STARTING")
+        logger.info("📊 Focus: Google Trends + Lazada Persona + TikTok Shop + Local Events + Event-Trend Analysis")
+        if args.debug:
+            logger.info("🔍 DEBUG MODE - Transparency Report Enabled")
+    
     logger.info("=" * 60)
     
     all_results = []
     
     try:
-        # Validate settings
-        logger.info("🔧 Validating configuration...")
-        # Settings validation passed (using default settings)
-        logger.info("✅ Configuration validation passed")
+        # If only running persona engine
+        if args.persona_only:
+            logger.info("🎯 Running Persona Recommendation Engine only...")
+            persona_results = run_persona_recommendation_engine(debug_mode=args.debug, logger=logger)
+            all_results.append(persona_results)
         
-        # Initialize core components
-        database_client, anti_bot_system, scraping_policy = initialize_components(logger)
+        else:
+            # Validate settings
+            logger.info("🔧 Validating configuration...")
+            # Settings validation passed (using default settings)
+            logger.info("✅ Configuration validation passed")
+            
+            # Initialize core components
+            database_client, anti_bot_system, scraping_policy = initialize_components(logger)
+            
+            # Run core 5 components (4 scrapers + 1 analyzer + persona engine)
+            logger.info("🎯 Starting CORE 6 COMPONENTS execution sequence...")
+            logger.info("📊 Pipeline: Google Trends → Lazada Persona → TikTok Shop → Local Events → Event-Trend Analysis → Persona Recommendations")
         
-        # Run core 5 components (4 scrapers + 1 analyzer)
-        logger.info("🎯 Starting CORE 5 COMPONENTS execution sequence...")
-        logger.info("📊 Pipeline: Google Trends → Lazada Persona → TikTok Shop → Local Events → Event-Trend Analysis")
+            # 1. Google Trends (Most stable - official API)
+            logger.info("1️⃣ Google Trends Philippines - Starting...")
+            google_results = run_google_trends_scraper(database_client, anti_bot_system, scraping_policy, logger)
+            all_results.append(google_results)
+            
+            # Delay between scrapers
+            logger.info("⏸️ Waiting 8 seconds before next scraper...")
+            time.sleep(5)  # Optimized delay
+            
+            # 2. Lazada Persona (Real product data with persona targeting)
+            logger.info("2️⃣ Lazada Persona Targeting - Starting...")
+            lazada_persona_results = run_lazada_persona_scraper(database_client, anti_bot_system, scraping_policy, logger)
+            all_results.append(lazada_persona_results)
+            
+            # Delay before final scraper
+            logger.info("⏸️ Waiting 8 seconds before next scraper...")
+            time.sleep(5)  # Optimized delay
+            
+            # 3. TikTok Shop (Latest trends and social commerce)
+            logger.info("3️⃣ TikTok Shop Philippines - Starting...")
+            tiktok_shop_results = run_tiktok_shop_scraper(database_client, anti_bot_system, scraping_policy, logger)
+            all_results.append(tiktok_shop_results)
+            
+            # Delay before final scraper
+            logger.info("⏸️ Waiting 5 seconds before next scraper...")
+            time.sleep(3)  # Optimized delay
+            
+            # 4. Local Events (Experience-based content ideas)
+            logger.info("4️⃣ Local Events Philippines - Starting...")
+            local_events_results = run_local_event_scraper(database_client, anti_bot_system, scraping_policy, logger)
+            all_results.append(local_events_results)
+            
+            # Delay before event analysis
+            logger.info("⏸️ Waiting 3 seconds before trend analysis...")
+            time.sleep(3)
         
-        # 1. Google Trends (Most stable - official API)
-        logger.info("1️⃣ Google Trends Philippines - Starting...")
-        google_results = run_google_trends_scraper(database_client, anti_bot_system, scraping_policy, logger)
-        all_results.append(google_results)
-        
-        # Delay between scrapers
-        logger.info("⏸️ Waiting 8 seconds before next scraper...")
-        time.sleep(5)  # Optimized delay
-        
-        # 2. Lazada Persona (Real product data with persona targeting)
-        logger.info("2️⃣ Lazada Persona Targeting - Starting...")
-        lazada_persona_results = run_lazada_persona_scraper(database_client, anti_bot_system, scraping_policy, logger)
-        all_results.append(lazada_persona_results)
-        
-        # Delay before final scraper
-        logger.info("⏸️ Waiting 8 seconds before next scraper...")
-        time.sleep(5)  # Optimized delay
-        
-        # 3. TikTok Shop (Latest trends and social commerce)
-        logger.info("3️⃣ TikTok Shop Philippines - Starting...")
-        tiktok_shop_results = run_tiktok_shop_scraper(database_client, anti_bot_system, scraping_policy, logger)
-        all_results.append(tiktok_shop_results)
-        
-        # Delay before final scraper
-        logger.info("⏸️ Waiting 5 seconds before next scraper...")
-        time.sleep(3)  # Optimized delay
-        
-        # 4. Local Events (Experience-based content ideas)
-        logger.info("4️⃣ Local Events Philippines - Starting...")
-        local_events_results = run_local_event_scraper(database_client, anti_bot_system, scraping_policy, logger)
-        all_results.append(local_events_results)
-        
-        # Delay before event analysis
-        logger.info("⏸️ Waiting 3 seconds before trend analysis...")
-        time.sleep(3)
-        
-        # 5. Event-Trend Correlation Engine v2.3 (Analyze collected events)
-        logger.info("5️⃣ Event-Trend Correlation Engine v2.3 - Starting...")
-        event_trend_results = run_event_trend_analyzer(database_client, logger)
-        all_results.append(event_trend_results)
+            # 5. Event-Trend Correlation Engine v2.3 (Analyze collected events)
+            logger.info("5️⃣ Event-Trend Correlation Engine v2.3 - Starting...")
+            event_trend_results = run_event_trend_analyzer(database_client, logger)
+            all_results.append(event_trend_results)
+            
+            # Delay before persona engine
+            logger.info("⏸️ Waiting 3 seconds before persona recommendations...")
+            time.sleep(3)
+            
+            # 6. Persona Recommendation Engine (Generate persona-based recommendations)
+            logger.info("6️⃣ Persona Recommendation Engine - Starting...")
+            persona_results = run_persona_recommendation_engine(debug_mode=args.debug, logger=logger)
+            all_results.append(persona_results)
         
         # Generate summary report
         generate_summary_report(all_results, logger)
@@ -556,16 +685,25 @@ def main():
         successful_count = len([r for r in all_results if r["success"]])
         total_components = len(all_results)
         
-        if successful_count == total_components:
-            logger.info("🎉 ALL CORE 5 COMPONENTS COMPLETED SUCCESSFULLY!")
-            logger.info("✅ Philippines market intelligence + event-trend analysis complete")
-        elif successful_count > 0:
-            logger.info(f"⚠️ PARTIAL SUCCESS: {successful_count}/{total_components} components completed")
-            logger.info("📊 Some data collected - system partially operational")
+        if args.persona_only:
+            if successful_count == total_components:
+                logger.info("🎉 PERSONA RECOMMENDATION ENGINE COMPLETED SUCCESSFULLY!")
+                logger.info("✅ Persona-based recommendations generated")
+            else:
+                logger.error("❌ PERSONA RECOMMENDATION ENGINE FAILED")
+                logger.error("🔧 Check configuration and system setup")
+                sys.exit(1)
         else:
-            logger.error("❌ ALL COMPONENTS FAILED")
-            logger.error("🔧 Check network, credentials, and system configuration")
-            sys.exit(1)
+            if successful_count == total_components:
+                logger.info("🎉 ALL CORE 6 COMPONENTS COMPLETED SUCCESSFULLY!")
+                logger.info("✅ Philippines market intelligence + event-trend analysis + persona recommendations complete")
+            elif successful_count > 0:
+                logger.info(f"⚠️ PARTIAL SUCCESS: {successful_count}/{total_components} components completed")
+                logger.info("📊 Some data collected - system partially operational")
+            else:
+                logger.error("❌ ALL COMPONENTS FAILED")
+                logger.error("🔧 Check network, credentials, and system configuration")
+                sys.exit(1)
         
     except Exception as e:
         logger.error(f"💥 CRITICAL ERROR during execution: {e}")
@@ -573,8 +711,12 @@ def main():
         sys.exit(1)
     
     logger.info("=" * 60)
-    logger.info("🏁 VOOTCAMP PH CORE 5 COMPONENTS - COMPLETED")
-    logger.info("📊 Philippines Market Intelligence + Event-Trend Analysis Finished")
+    if args.persona_only:
+        logger.info("🏁 VOOTCAMP PH PERSONA RECOMMENDATION ENGINE - COMPLETED")
+        logger.info("🎯 Persona-based Recommendations Finished")
+    else:
+        logger.info("🏁 VOOTCAMP PH CORE 6 COMPONENTS - COMPLETED")
+        logger.info("📊 Philippines Market Intelligence + Event-Trend Analysis + Persona Recommendations Finished")
     logger.info("=" * 60)
 
 

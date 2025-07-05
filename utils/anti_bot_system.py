@@ -30,7 +30,7 @@ from .performance_monitor import PerformanceMonitor, BlockingEvent
 from .ethical_scraping import EthicalScrapingManager, ScrapingPolicy
 from .fingerprint_randomizer import FingerprintRandomizer
 try:
-from ..config.settings import settings
+    from ..config.settings import settings
 except ImportError:
     # Fallback for when running as script
     import sys
