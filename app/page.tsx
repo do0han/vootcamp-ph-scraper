@@ -1,14 +1,13 @@
 'use client'
 
-import { useState, useCallback, useMemo, Suspense } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { PersonaSelector } from './components/PersonaSelector'
 import { GenerateButton } from './components/GenerateButton'
-import { DynamicReportDisplay } from './components/DynamicReportDisplay'
-import { LoadingState } from './components/LoadingState'
-import { PremiumHint } from './components/PremiumHint'
+import { CustomRecommendationForm } from './components/CustomRecommendationForm'
+import { CustomRecommendationDisplay } from './components/CustomRecommendationDisplay'
 import { ReportHistory } from './components/ReportHistory'
 import { ReportTypeSelector, ReportType } from './components/ReportTypeSelector'
-import { Crown, Sparkles, Save } from 'lucide-react'
+import { Crown, Sparkles, Save, User, Users, Loader2, Copy, Check } from 'lucide-react'
 
 export interface Persona {
   id: string
@@ -17,6 +16,8 @@ export interface Persona {
   emoji: string
   color: string
 }
+
+type TabType = 'preset' | 'custom'
 
 const PERSONAS: Persona[] = [
   {
@@ -140,6 +141,11 @@ export default function HomePage() {
   const [selectedReportType, setSelectedReportType] = useState<ReportType | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [report, setReport] = useState<string | null>(null)
+  const [currentTab, setCurrentTab] = useState<TabType>('preset')
+  const [copied, setCopied] = useState(false)
+  
+  // For custom recommendations
+  const [customRecommendation, setCustomRecommendation] = useState<any>(null)
 
   const handleGenerate = useCallback(async () => {
     if (!selectedPersona) return
@@ -203,6 +209,11 @@ export default function HomePage() {
     }
   }, [report, selectedPersona])
 
+  const handleCustomRecommendationGenerated = useCallback((recommendationData: any) => {
+    setCustomRecommendation(recommendationData)
+    console.log('✅ Custom recommendation generated:', recommendationData)
+  }, [])
+
   // Memoize heavy computations
   const availablePersonas = useMemo(() => PERSONAS, [])
   
@@ -216,6 +227,7 @@ export default function HomePage() {
   
   const handleLoadReport = useCallback((reportContent: string) => {
     setReport(reportContent)
+    setCurrentTab('preset') // Switch to preset tab when loading report
   }, [])
 
   return (
@@ -225,7 +237,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 gradient-bg rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -236,98 +248,195 @@ export default function HomePage() {
             
             <div className="flex items-center space-x-3">
               <ReportHistory onLoadReport={handleLoadReport} />
-              <PremiumHint />
+              <div className="bg-gradient-to-r from-amber-100 to-orange-100 px-3 py-1 rounded-full flex items-center space-x-1">
+                <Crown className="w-4 h-4 text-amber-600" />
+                <span className="text-sm font-medium text-amber-800">Ka-Tropa Plan</span>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column - Input */}
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                당신의 페르소나를 선택하세요
-              </h2>
-              <p className="text-gray-600">
-                선택한 페르소나에 맞는 맞춤형 콘텐츠 아이디어를 생성해드립니다.
-              </p>
-            </div>
-
-            <PersonaSelector
-              personas={availablePersonas}
-              selectedPersona={selectedPersona}
-              onSelect={handlePersonaSelect}
-            />
-
-            <ReportTypeSelector
-              selectedType={selectedReportType}
-              onSelect={handleReportTypeSelect}
-            />
-
-            <GenerateButton
-              selectedPersona={selectedPersona}
-              isGenerating={isGenerating}
-              onClick={handleGenerate}
-            />
-
-            {/* Premium Features Preview */}
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-4 border border-amber-200">
-              <div className="flex items-center space-x-2 mb-2">
-                <Crown className="w-4 h-4 text-amber-600" />
-                <span className="text-sm font-medium text-amber-800">Ka-Tropa Plan 미리보기</span>
+      {/* Tab Navigation */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex space-x-8">
+            <button
+              onClick={() => setCurrentTab('preset')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                currentTab === 'preset'
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Users className="w-4 h-4" />
+                <span>프리셋 페르소나</span>
               </div>
-              <ul className="text-sm text-amber-700 space-y-1">
-                <li>• 무제한 리포트 생성</li>
-                <li>• 실시간 트렌드 분석</li>
-                <li>• 자동 어필리에이트 링크 생성</li>
-                <li>• 개인 맞춤 콘텐츠 캘린더</li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Right Column - Output */}
-          <div className="space-y-6">
-            {!selectedPersona && !isGenerating && !report && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Sparkles className="w-8 h-8 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  콘텐츠 아이디어를 생성해보세요
-                </h3>
-                <p className="text-gray-500">
-                  페르소나를 선택하고 생성 버튼을 클릭하면<br />
-                  AI가 맞춤형 콘텐츠 아이디어를 제공합니다.
-                </p>
+            </button>
+            <button
+              onClick={() => setCurrentTab('custom')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                currentTab === 'custom'
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <User className="w-4 h-4" />
+                <span>맞춤형 추천</span>
               </div>
-            )}
-
-            {isGenerating && <LoadingState />}
-
-            {report && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">생성된 리포트</h3>
-                  <button
-                    onClick={handleSaveReport}
-                    className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <Save className="w-4 h-4" />
-                    <span>저장</span>
-                  </button>
-                </div>
-                <Suspense fallback={<LoadingState />}>
-                  <DynamicReportDisplay 
-                    report={report} 
-                  />
-                </Suspense>
-              </div>
-            )}
+            </button>
           </div>
         </div>
+      </div>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {currentTab === 'preset' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left Column - Input */}
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  당신의 페르소나를 선택하세요
+                </h2>
+                <p className="text-gray-600">
+                  선택한 페르소나에 맞는 맞춤형 콘텐츠 아이디어를 생성해드립니다.
+                </p>
+              </div>
+
+              <PersonaSelector
+                personas={availablePersonas}
+                selectedPersona={selectedPersona}
+                onSelect={handlePersonaSelect}
+              />
+
+              <ReportTypeSelector
+                selectedType={selectedReportType}
+                onSelect={handleReportTypeSelect}
+              />
+
+              <GenerateButton
+                selectedPersona={selectedPersona}
+                isGenerating={isGenerating}
+                onClick={handleGenerate}
+              />
+
+              {/* Premium Features Preview */}
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-4 border border-amber-200">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Crown className="w-4 h-4 text-amber-600" />
+                  <span className="text-sm font-medium text-amber-800">Ka-Tropa Plan 미리보기</span>
+                </div>
+                <ul className="text-sm text-amber-700 space-y-1">
+                  <li>• 무제한 리포트 생성</li>
+                  <li>• 실시간 트렌드 분석</li>
+                  <li>• 자동 어필리에이트 링크 생성</li>
+                  <li>• 개인 맞춤 콘텐츠 캘린더</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Right Column - Output */}
+            <div className="space-y-6">
+              {!selectedPersona && !isGenerating && !report && (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Sparkles className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    콘텐츠 아이디어를 생성할 준비가 되었습니다
+                  </h3>
+                  <p className="text-gray-600">
+                    페르소나를 선택하고 생성 버튼을 클릭하세요.
+                  </p>
+                </div>
+              )}
+
+              {isGenerating && (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    AI가 콘텐츠 아이디어를 생성 중입니다...
+                  </h3>
+                  <p className="text-gray-600">
+                    잠시만 기다려주세요. 최고의 아이디어를 찾고 있습니다.
+                  </p>
+                </div>
+              )}
+
+              {report && !isGenerating && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium text-gray-900">생성된 리포트</h3>
+                    <button
+                      onClick={handleSaveReport}
+                      className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      <Save className="w-4 h-4 mr-1.5" />
+                      저장
+                    </button>
+                  </div>
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-lg font-semibold text-gray-900">리포트 내용</h4>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(report)
+                            setCopied(true)
+                            setTimeout(() => setCopied(false), 2000)
+                          }}
+                          className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                        >
+                          {copied ? (
+                            <>
+                              <Check className="w-4 h-4 mr-1.5 text-green-500" />
+                              복사됨
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-4 h-4 mr-1.5" />
+                              복사
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <div className="prose prose-sm max-w-none">
+                        <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono bg-gray-50 p-4 rounded-lg overflow-auto">
+                          {report}
+                        </pre>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          // Custom Recommendation Tab
+          <div>
+            {!customRecommendation ? (
+              <CustomRecommendationForm onReportGenerated={handleCustomRecommendationGenerated} />
+            ) : (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold text-gray-900">맞춤 추천 결과</h2>
+                  <button
+                    onClick={() => setCustomRecommendation(null)}
+                    className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
+                  >
+                    새로운 추천 받기
+                  </button>
+                </div>
+                <CustomRecommendationDisplay data={customRecommendation} />
+              </div>
+            )}
+          </div>
+        )}
       </main>
     </div>
   )
