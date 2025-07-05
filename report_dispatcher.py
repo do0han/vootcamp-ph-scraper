@@ -452,15 +452,57 @@ Surprised expressions (wide eyes, open mouth) perform 40% better than neutral fa
 
 def generate_content_ideas_report(user_profile):
     """
-    Placeholder function for Content Ideas Report generation.
-    
-    Args:
-        user_profile (dict): User profile information
-        
-    Returns:
-        str: Placeholder report content
+    Generates a personalized Content Ideas Report based on a persona profile.
+    This version now calls the OpenAI API.
     """
-    return "Placeholder for Content Ideas Report"
+    if not user_profile:
+        return "Error: user_profile cannot be None."
+
+    persona = user_profile.get('persona', {})
+    persona_name = persona.get('name', 'Content Creator')
+    channel_category = user_profile.get('channel_category', 'General')
+    mbti_type = user_profile.get('mbti', 'Not specified')
+    mbti_details = persona.get('mbti_details', 'Not specified')
+
+    prompt = f"""You are a creative partner and idea generator for Filipino creators. Your task is to brainstorm a list of fresh, engaging, and highly relevant content ideas based on the provided [Persona Profile].
+
+Persona Profile:
+- Channel Category: {channel_category}
+- MBTI: {mbti_type} ({mbti_details})
+
+Your output MUST strictly follow these rules:
+
+1.  **Brainstorming Focus:** Generate a diverse list of at least 10-15 concrete, actionable content ideas.
+2.  **Persona Alignment:** Every idea must be a direct reflection of both the Channel Category and the MBTI type.
+    -   **For the Channel Category:** The idea must be undeniably about this topic. (e.g., for "Tech," it must be about gadgets, software, etc.).
+    -   **For the MBTI type:** The format and angle must align with the personality. For an "ESFP (Entertainer)," suggest high-energy, social ideas. For an "INTP (Logician)," suggest analytical, in-depth topics.
+3.  **Format:** Present the ideas as a simple, easy-to-scan bulleted or numbered list. Add a brief, one-sentence description for each idea.
+4.  **Strict Exclusion:** DO NOT include sections on monetization, performance optimization, or high-level strategy. Focus ONLY on generating a creative list of content ideas.
+"""
+
+    try:
+        # --- OpenAI API Call ---
+        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        
+        response = client.chat.completions.create(
+            model="gpt-4-turbo",
+            messages=[
+                {"role": "system", "content": "You are a creative partner and idea generator for Filipino creators."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.8, # Slightly higher for more creative ideas
+            max_tokens=1500,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0
+        )
+        
+        report_content = response.choices[0].message.content
+        return report_content.strip()
+
+    except Exception as e:
+        print(f"An error occurred while calling OpenAI API: {e}")
+        return f"Error: Failed to generate report due to an API error. Please check API key and service status. Details: {e}"
 
 
 def generate_trend_analysis_report(user_profile):
